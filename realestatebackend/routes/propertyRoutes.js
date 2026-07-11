@@ -45,7 +45,7 @@ const {
   getPropertyPriceRange,
   getRecentlyViewed,
   getPropertyInsights,
-} = require('../controllers/PropertyController');
+} = require('../controllers/propertyController');
 
 // ════════════════════════════════════════════════════════════════════
 // PUBLIC ROUTES — No authentication required
