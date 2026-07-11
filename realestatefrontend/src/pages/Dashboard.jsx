@@ -306,7 +306,7 @@ export default function Dashboard() {
         } else if (isBuyer) {
           const [propsRes, statsRes] = await Promise.all([
             getProperties({ limit: 5, sortBy: 'createdAt', order: 'desc' }),
-            axios.get(`http://localhost:5000/api/properties/stats`),
+            axios.get(` https://realepro.onrender.com/api/properties/stats`),
           ]);
           console.log('BUYER propsRes.data:', propsRes.data);       // ← add
           console.log('BUYER properties array:', propsRes.data.data); // ← add

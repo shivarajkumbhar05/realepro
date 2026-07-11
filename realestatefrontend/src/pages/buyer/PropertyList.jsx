@@ -5,7 +5,7 @@ import { getProperties } from '../../api/properties';
 import { Building2, Search, Filter, MapPin, Bed, Bath, Square, ChevronLeft, ChevronRight, Plus, Star, LayoutGrid, Map as MapIcon } from 'lucide-react';
 import AllPropertiesMap from '../../components/map/AllPropertiesMap';
 
-const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || ' https://realepro.onrender.com';
 
 function PropertyCard({ property, isAdmin, isAgent, user }) {
   const imgPath = property.images?.[0]?.path;

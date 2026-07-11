@@ -35,7 +35,7 @@ export const resolveImageUrl = (image) => {
     }
     
     // Get base URL from environment
-    const baseUrl = import.meta.env?.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env?.VITE_API_URL || ' https://realepro.onrender.com';
     
     // If path starts with /uploads, /images, or /api
     if (image.startsWith('/uploads') || 
