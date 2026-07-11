@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Building2, MapPin, Bed, Bath, Square, Heart, Star, Trash2, ArrowLeft, ShoppingBag, Home, Phone, Mail, Clock, Filter, Grid3x3, List, ChevronDown, ChevronUp } from "lucide-react";
 import { useFavorites } from "../../context/FavoritesContext";
-import { resolveImageUrl } from "../../utils/imageUrl";
+import { resolveImageUrl } from "../../utils/ImageURL";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
