@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getProperties, getPublicStats } from '../../api/properties';
-import { resolveImageUrl } from '../../utils/ImageURL';
+import { resolveImageUrl } from '../../utils/imageUtils';
 import {
   Building2, Search, MapPin, Bed, Bath, Square, Star, ShieldCheck,
   Sparkles, Home as HomeIcon, Building, LandPlot, Store, ArrowRight,

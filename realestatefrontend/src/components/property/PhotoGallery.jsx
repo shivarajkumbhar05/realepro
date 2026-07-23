@@ -4,13 +4,43 @@ import {
   Upload, Camera, Image, Sparkles, Heart, Share2, Download,
   Maximize2, Minimize2, Grid3x3, List, Filter, Plus,
   Trash2, Edit, Save, AlertCircle, CheckCircle, XCircle,
-  ZoomIn, ZoomOut, RotateCw, Sun, Moon
+  ZoomIn, ZoomOut, RotateCw, Sun, Moon, Star
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { updateImageDetails, deleteImage } from '../../api/properties';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://realepro.onrender.com';
+
+// ✅ FIXED: Resolve an image path to a usable <img src>.
+// Images passed in from PropertyDetail are often ALREADY full URLs
+// (e.g. https://picsum.photos/...) because they've already been run
+// through getImageUrl() upstream. Blindly prepending BASE to those
+// produced broken URLs like "https://realepro.onrender.comhttps//...".
+// This helper only prepends BASE when the path is actually relative.
+const resolveImageSrc = (path) => {
+  if (!path) return '';
+
+  path = path.trim();
+
+  // Fix malformed protocol (missing colon): "https//" or "http//"
+  if (/^https?\/\//i.test(path) && !/^https?:\/\//i.test(path)) {
+    path = path.replace(/^(https?)\/\//i, '$1://');
+  }
+
+  // Already absolute — use as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+
+  // Protocol-relative
+  if (path.startsWith('//')) {
+    return `https:${path}`;
+  }
+
+  // Relative path — prepend BASE
+  return path.startsWith('/') ? `${BASE}${path}` : `${BASE}/${path}`;
+};
 
 // ─── Room Labels ──────────────────────────────────────────────────────
 const ROOM_LABELS = {
@@ -66,7 +96,7 @@ function ThumbnailNav({ items, selected, onSelect }) {
             }`}
           >
             <img 
-              src={`${BASE}${img.path}`} 
+              src={resolveImageSrc(img.path)} 
               alt="" 
               className="w-full h-full object-cover"
             />
@@ -215,6 +245,7 @@ export default function PhotoGallery({ propertyId, images, canEdit }) {
   }
 
   const current = items[selected];
+  const currentSrc = resolveImageSrc(current?.path);
 
   const handleSaveEdit = async (draft) => {
     setSaving(true);
@@ -256,7 +287,7 @@ export default function PhotoGallery({ propertyId, images, canEdit }) {
       {/* ─── Main Image ───────────────────────────────────────────────── */}
       <div className="relative aspect-video bg-gray-200 overflow-hidden group">
         <motion.img
-          src={`${BASE}${current.path}`}
+          src={currentSrc}
           alt={current.caption || ''}
           className="w-full h-full object-cover cursor-zoom-in"
           style={{ transform: `scale(${zoomLevel})` }}
@@ -310,7 +341,7 @@ export default function PhotoGallery({ propertyId, images, canEdit }) {
             </>
           )}
           <button
-            onClick={() => window.open(`${BASE}${current.path}`, '_blank')}
+            onClick={() => window.open(currentSrc, '_blank')}
             className="p-2 bg-white/90 backdrop-blur-sm hover:bg-white rounded-xl shadow-lg transition-all hover:scale-110"
             title="View full size"
           >
@@ -423,7 +454,7 @@ export default function PhotoGallery({ propertyId, images, canEdit }) {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                src={`${BASE}${current.path}`}
+                src={currentSrc}
                 alt={current.caption || ''}
                 className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
               />
@@ -460,6 +491,3 @@ export default function PhotoGallery({ propertyId, images, canEdit }) {
     </div>
   );
 }
-
-// ─── Add missing imports ──────────────────────────────────────────────
-import { Star } from 'lucide-react';

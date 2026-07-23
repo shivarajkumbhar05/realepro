@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Building2, MapPin, X, GitCompare, Bed, Bath, Square, DollarSign, Home, ArrowLeft, Heart, Calendar, Star, Users, Phone, Mail, Globe, Shield, CheckCircle, AlertCircle } from "lucide-react";
 import { useCompare } from "../../context/CompareContext";
-import { resolveImageUrl } from "../../utils/ImageURL";
+import { resolveImageUrl } from "../../utils/imageUtils";
 import { useFavorites } from "../../context/FavoritesContext";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";

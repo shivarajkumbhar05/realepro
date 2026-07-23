@@ -1,12 +1,21 @@
+// src/utils/imageUtils.js
+
 /**
  * Image URL Utility
  * Handles various image formats and resolves them to usable URLs
  */
 
+// ─── Get Base URL ──────────────────────────────────────────────────────
+const getBaseUrl = () => {
+  // Remove any trailing slashes and spaces
+  const url = import.meta.env?.VITE_API_URL?.replace('/api', '')?.trim() || 'https://realepro.onrender.com';
+  return url.replace(/\/$/, ''); // Remove trailing slash
+};
+
+const BASE_URL = getBaseUrl();
+
 /**
  * Resolve image URL from various formats
- * @param {string|object|Array} image - Image path, object containing path, or array of images
- * @returns {string|null} - Resolved image URL or null
  */
 export const resolveImageUrl = (image) => {
   if (!image) {
@@ -21,7 +30,10 @@ export const resolveImageUrl = (image) => {
 
   // If it's a string, process it
   if (typeof image === 'string') {
-    // If it's already a full URL (http, https, data:, blob:)
+    // Trim whitespace
+    image = image.trim();
+    
+    // If it's already a full URL
     if (image.startsWith('http://') || 
         image.startsWith('https://') || 
         image.startsWith('data:') || 
@@ -34,24 +46,21 @@ export const resolveImageUrl = (image) => {
       return `data:image/jpeg;base64,${image}`;
     }
     
-    // Get base URL from environment
-    const baseUrl = import.meta.env?.VITE_API_URL || ' https://realepro.onrender.com';
-    
     // If path starts with /uploads, /images, or /api
     if (image.startsWith('/uploads') || 
         image.startsWith('/images') || 
         image.startsWith('/api')) {
-      return `${baseUrl}${image}`;
+      return `${BASE_URL}${image}`;
     }
     
     // If it's just a filename (no path), assume it's in /uploads
     if (!image.includes('/') && !image.includes('\\')) {
-      return `${baseUrl}/uploads/${image}`;
+      return `${BASE_URL}/uploads/${image}`;
     }
     
     // If it's a relative path without leading slash
     if (!image.startsWith('/')) {
-      return `${baseUrl}/${image}`;
+      return `${BASE_URL}/${image}`;
     }
     
     // Default: return as-is
@@ -78,7 +87,7 @@ export const resolveImageUrl = (image) => {
     }
     // Check for public_id (Cloudinary)
     if (image.public_id) {
-      return resolveImageUrl(image.public_id);
+      return `https://res.cloudinary.com/demo/image/upload/${image.public_id}`;
     }
     // Check for data property
     if (image.data) {
@@ -92,8 +101,6 @@ export const resolveImageUrl = (image) => {
 
 /**
  * Get the first valid image from a property
- * @param {Array|Object} images - Images array or object
- * @returns {string|null} - First valid image URL or null
  */
 export const getFirstImage = (images) => {
   if (!images) return null;
@@ -103,7 +110,6 @@ export const getFirstImage = (images) => {
   }
   
   if (typeof images === 'object') {
-    // Try to get first value from object
     const values = Object.values(images);
     if (values.length > 0) {
       return resolveImageUrl(values[0]);
@@ -115,8 +121,6 @@ export const getFirstImage = (images) => {
 
 /**
  * Get all valid image URLs from a property
- * @param {Array|Object} images - Images array or object
- * @returns {Array} - Array of valid image URLs
  */
 export const getAllImages = (images) => {
   if (!images) return [];
@@ -138,32 +142,27 @@ export const getAllImages = (images) => {
 
 /**
  * Check if an image URL is valid
- * @param {string} url - Image URL to check
- * @returns {boolean} - True if URL is valid
  */
 export const isValidImageUrl = (url) => {
   if (!url) return false;
   
-  // Check if it's a valid URL format
+  url = url.trim();
+  
   try {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       new URL(url);
       return true;
     }
-    // Check for data URLs
     if (url.startsWith('data:image/')) {
       return true;
     }
-    // Check for blob URLs
     if (url.startsWith('blob:')) {
       return true;
     }
-    // Check for base64
     if (url.startsWith('/9j/') || url.startsWith('iVBOR')) {
       return true;
     }
-    // Accept relative paths
-    if (url.startsWith('/') || url.startsWith('./')) {
+    if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
       return true;
     }
     return false;
@@ -174,22 +173,14 @@ export const isValidImageUrl = (url) => {
 
 /**
  * Get a placeholder image URL
- * @param {string} text - Optional text to display on placeholder
- * @param {number} width - Width of placeholder
- * @param {number} height - Height of placeholder
- * @returns {string} - Placeholder image URL
  */
 export const getPlaceholderImage = (text = 'No Image', width = 400, height = 300) => {
-  // Using UI Avatars for placeholder
-  const encodedText = encodeURIComponent(text);
+  const encodedText = encodeURIComponent(text || 'Property');
   return `https://ui-avatars.com/api/?name=${encodedText}&background=random&size=${width}&color=fff&font-size=0.5`;
 };
 
 /**
  * Get a property image or placeholder
- * @param {Array|Object|string} image - Image data
- * @param {string} fallbackText - Fallback text for placeholder
- * @returns {string} - Image URL or placeholder
  */
 export const getPropertyImage = (image, fallbackText = 'Property') => {
   const resolved = resolveImageUrl(image);
@@ -201,9 +192,6 @@ export const getPropertyImage = (image, fallbackText = 'Property') => {
 
 /**
  * Generate image URL with fallback
- * @param {string} url - Original URL
- * @param {string} fallback - Fallback URL
- * @returns {string} - URL or fallback
  */
 export const getImageWithFallback = (url, fallback = '/images/placeholder.jpg') => {
   const resolved = resolveImageUrl(url);
@@ -214,23 +202,16 @@ export const getImageWithFallback = (url, fallback = '/images/placeholder.jpg') 
 };
 
 /**
- * Optimize image URL for different sizes (useful for Cloudinary, etc.)
- * @param {string} url - Original URL
- * @param {Object} options - Optimization options
- * @param {number} options.width - Desired width
- * @param {number} options.height - Desired height
- * @param {string} options.quality - Image quality (low, medium, high)
- * @param {string} options.format - Image format (webp, jpg, png)
- * @returns {string} - Optimized URL
+ * Optimize image URL for different sizes (Cloudinary, etc.)
  */
 export const optimizeImage = (url, options = {}) => {
+  if (!url) return null;
+  
   const { width, height, quality = 'medium', format = 'webp' } = options;
   
   // Only apply to Cloudinary URLs
   if (url && url.includes('cloudinary.com')) {
     let optimizedUrl = url;
-    
-    // Add transformation parameters
     const params = [];
     if (width) params.push(`w_${width}`);
     if (height) params.push(`h_${height}`);
@@ -240,13 +221,11 @@ export const optimizeImage = (url, options = {}) => {
     if (format) params.push(`f_${format}`);
     
     if (params.length > 0) {
-      // Insert transformation before image version
       const parts = url.split('/upload/');
       if (parts.length === 2) {
         optimizedUrl = `${parts[0]}/upload/${params.join(',')}/${parts[1]}`;
       }
     }
-    
     return optimizedUrl;
   }
   
@@ -255,8 +234,6 @@ export const optimizeImage = (url, options = {}) => {
 
 /**
  * Get image dimensions from URL
- * @param {string} url - Image URL
- * @returns {Promise<{width: number, height: number}>} - Image dimensions
  */
 export const getImageDimensions = (url) => {
   return new Promise((resolve, reject) => {
@@ -271,7 +248,33 @@ export const getImageDimensions = (url) => {
   });
 };
 
-// Default export for convenience
+/**
+ * Preload images for better performance
+ */
+export const preloadImages = async (images) => {
+  if (!images || images.length === 0) return [];
+  
+  const promises = images.map((img) => {
+    return new Promise((resolve) => {
+      const imageUrl = getPropertyImage(img);
+      const image = new Image();
+      image.onload = () => resolve(imageUrl);
+      image.onerror = () => resolve(getPlaceholderImage('Image'));
+      image.src = imageUrl;
+    });
+  });
+  
+  return Promise.all(promises);
+};
+
+/**
+ * Get a random image from picsum
+ */
+export const getRandomImage = (seed = 'property', width = 800, height = 600) => {
+  return `https://picsum.photos/seed/${seed}/${width}/${height}`;
+};
+
+// Default export
 export default {
   resolveImageUrl,
   getFirstImage,
@@ -282,4 +285,7 @@ export default {
   getImageWithFallback,
   optimizeImage,
   getImageDimensions,
+  preloadImages,
+  getRandomImage,
+  BASE_URL,
 };

@@ -5,6 +5,11 @@ import { createPurchase } from '../../api/purchases';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BuyModal({ property, onClose, onSuccess }) {
+  // ✅ Add fallback for property
+  if (!property) {
+    return null;
+  }
+
   const [offerPrice, setOfferPrice] = useState(property.price || '');
   const [message, setMessage] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -101,17 +106,25 @@ export default function BuyModal({ property, onClose, onSuccess }) {
               <Building2 className="w-7 h-7" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{property.title}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{property.title || 'Property'}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-gray-500">{property.location?.city}, {property.location?.state}</span>
+                <span className="text-xs text-gray-500">
+                  {property.location?.city || 'City'}, {property.location?.state || 'State'}
+                </span>
                 <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                <span className="text-xs font-medium text-primary-600">₹{property.price?.toLocaleString('en-IN')}</span>
+                <span className="text-xs font-medium text-primary-600">
+                  ₹{property.price?.toLocaleString('en-IN') || 'N/A'}
+                </span>
               </div>
             </div>
             <div className={`text-[10px] font-medium px-2.5 py-1 rounded-full ${
-              property.status === 'sale' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+              property.status === 'sale' ? 'bg-blue-100 text-blue-700' : 
+              property.status === 'rent' ? 'bg-purple-100 text-purple-700' :
+              'bg-gray-100 text-gray-700'
             }`}>
-              {property.status === 'sale' ? 'For Sale' : 'For Rent'}
+              {property.status === 'sale' ? 'For Sale' : 
+               property.status === 'rent' ? 'For Rent' : 
+               'Available'}
             </div>
           </div>
         </div>
@@ -125,7 +138,9 @@ export default function BuyModal({ property, onClose, onSuccess }) {
                 <IndianRupee className="w-4 h-4 text-primary-500" />
                 Your Offer Price <span className="text-red-500">*</span>
               </label>
-              <span className="text-xs text-gray-400">Listed: ₹{property.price?.toLocaleString('en-IN')}</span>
+              <span className="text-xs text-gray-400">
+                Listed: ₹{property.price?.toLocaleString('en-IN') || 'N/A'}
+              </span>
             </div>
             
             <div className="relative">
@@ -234,6 +249,7 @@ export default function BuyModal({ property, onClose, onSuccess }) {
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
                 placeholder="I'm interested in this property because..."
+                maxLength={500}
               />
             </div>
             <div className="flex justify-between mt-1">

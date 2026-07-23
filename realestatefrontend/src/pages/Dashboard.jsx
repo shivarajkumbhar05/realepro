@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getDashboard } from '../api/admin';
-import { getProperties } from '../api/properties';
+import { getProperties } from '../api/properties'; // Only import what exists
 import {
   Building2,
   Users,
@@ -39,8 +39,6 @@ import {
   Phone,
   Mail,
   Globe,
-  // Remove these social media icons if they don't exist
-  // Facebook, Twitter, Instagram, Youtube, Linkedin, Github
   ChevronDown,
   Sun,
   Moon,
@@ -56,7 +54,7 @@ import {
   LineChart, Line, Area, AreaChart, CartesianGrid
 } from 'recharts';
 import { motion } from 'framer-motion';
-import axios from 'axios'; // or your existing api helper
+import axios from 'axios';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
 const GRADIENT_COLORS = ['#3b82f6', '#6366f1'];
@@ -285,12 +283,11 @@ export default function Dashboard() {
   const { user, isAdmin, isAgent, isBuyer } = useAuth();
   const [stats, setStats] = useState(null);
   const [properties, setProperties] = useState([]);
-  const [totalProperties, setTotalProperties] = useState(0); // ← add this
+  const [totalProperties, setTotalProperties] = useState(0);
   const [loading, setLoading] = useState(true);
   const [greeting, setGreeting] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
-  // const [totalProperties, setTotalProperties] = useState(0);
-  const [totalAgents, setTotalAgents] = useState(0); // ← add this
+  const [totalAgents, setTotalAgents] = useState(0);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -306,27 +303,33 @@ export default function Dashboard() {
         } else if (isBuyer) {
           const [propsRes, statsRes] = await Promise.all([
             getProperties({ limit: 5, sortBy: 'createdAt', order: 'desc' }),
-            axios.get(` https://realepro.onrender.com/api/properties/stats`),
+            axios.get(`https://realepro.onrender.com/api/properties/stats`),
           ]);
-          console.log('BUYER propsRes.data:', propsRes.data);       // ← add
-          console.log('BUYER properties array:', propsRes.data.data); // ← add
-          console.log('BUYER properties length:', propsRes.data.data?.length); // ← add
-          setProperties(propsRes.data || []);
-          setTotalProperties(statsRes.data.data?.totalProperties || 0);
-          setTotalAgents(statsRes.data.data?.totalAgents || 0);
+          console.log('BUYER propsRes:', propsRes);
+          console.log('BUYER statsRes:', statsRes);
+          
+          // Fix: Properly access the data
+          setProperties(propsRes.data?.data || propsRes.data || []);
+          setTotalProperties(statsRes.data?.data?.totalProperties || statsRes.data?.totalProperties || 0);
+          setTotalAgents(statsRes.data?.data?.totalAgents || statsRes.data?.totalAgents || 0);
         } else {
           // agent or other roles
           const { data } = await getProperties({ limit: 5 });
-          setProperties(data.data || []);
-          setTotalProperties(data.pagination?.total || 0);
+          console.log('Agent properties data:', data);
+          setProperties(data?.data || data || []);
+          setTotalProperties(data?.pagination?.total || data?.total || 0);
         }
       } catch (err) {
         console.error('Dashboard load error:', err);
+        // Set fallback values
+        setProperties([]);
+        setTotalProperties(0);
+        setTotalAgents(0);
       }
       setLoading(false);
     };
     load();
-  }, [isAdmin, isAgent, isBuyer]); // ← also add isBuyer here, it was missing
+  }, [isAdmin, isBuyer]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-[70vh]">
@@ -378,7 +381,7 @@ export default function Dashboard() {
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            Welcome back, {user?.name?.split(' ')[0]}! 👋
+            Welcome back, {user?.name?.split(' ')[0] || 'User'}! 👋
           </h1>
           <p className="text-blue-100 text-sm md:text-base max-w-xl">
             Here's what's happening with your properties today.
@@ -599,7 +602,6 @@ export default function Dashboard() {
               View all <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          {(() => { console.log('RENDER TIME — properties state:', properties, 'length:', properties.length); return null; })()}
           {properties.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-24 h-24 mx-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -613,7 +615,6 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {console.log('Rendering properties:', properties)}
               {properties.slice(0, 5).map(p => (
                 <PropertyCard key={p._id} property={p} featured={p.isApproved} />
               ))}

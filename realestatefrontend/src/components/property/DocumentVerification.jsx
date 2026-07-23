@@ -3,13 +3,42 @@ import {
   FileText, ShieldCheck, ShieldAlert, ShieldQuestion, 
   Sparkles, ChevronDown, ChevronUp, CheckCircle, 
   AlertCircle, Clock, Download, Eye, XCircle,
-  Info, Lock, Shield, Award, FileCheck, Upload
+  Info, Lock, Shield, Award, FileCheck, Upload,
+  Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { verifyDocuments } from '../../api/properties';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://realepro.onrender.com';
+
+// ─── URL Helper ────────────────────────────────────────────────────────
+const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  
+  // If it's a full URL
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath;
+  }
+  
+  // If it's a protocol-relative URL
+  if (filePath.startsWith('//')) {
+    return `https:${filePath}`;
+  }
+  
+  // If it's a relative path starting with /uploads or /documents
+  if (filePath.startsWith('/uploads/') || filePath.startsWith('/documents/')) {
+    return `${BASE}${filePath}`;
+  }
+  
+  // If it's a relative path without leading slash
+  if (!filePath.startsWith('/')) {
+    return `${BASE}/${filePath}`;
+  }
+  
+  // Default
+  return `${BASE}${filePath}`;
+};
 
 // ─── Status Configuration ─────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -19,7 +48,8 @@ const STATUS_CONFIG = {
     label: 'Verified',
     bg: 'bg-emerald-50',
     textColor: 'text-emerald-700',
-    borderColor: 'border-emerald-200'
+    borderColor: 'border-emerald-200',
+    scoreColor: 'text-emerald-600'
   },
   flagged: { 
     icon: ShieldAlert, 
@@ -27,7 +57,17 @@ const STATUS_CONFIG = {
     label: 'Needs Review',
     bg: 'bg-red-50',
     textColor: 'text-red-700',
-    borderColor: 'border-red-200'
+    borderColor: 'border-red-200',
+    scoreColor: 'text-red-600'
+  },
+  pending: { 
+    icon: ShieldQuestion, 
+    color: 'text-amber-600 bg-amber-50 border-amber-200', 
+    label: 'Pending',
+    bg: 'bg-amber-50',
+    textColor: 'text-amber-700',
+    borderColor: 'border-amber-200',
+    scoreColor: 'text-amber-600'
   },
   unverified: { 
     icon: ShieldQuestion, 
@@ -35,7 +75,8 @@ const STATUS_CONFIG = {
     label: 'Not Tested',
     bg: 'bg-gray-50',
     textColor: 'text-gray-600',
-    borderColor: 'border-gray-200'
+    borderColor: 'border-gray-200',
+    scoreColor: 'text-gray-500'
   },
 };
 
@@ -51,13 +92,15 @@ const CONSTRAINTS = {
 };
 
 // ─── Document Item Component ──────────────────────────────────────────
-function DocumentItem({ doc, index, onToggle, isOpen }) {
-  const cfg = STATUS_CONFIG[doc.verificationStatus] || STATUS_CONFIG.unverified;
+function DocumentItem({ doc, index, onToggle, isOpen, onDownload }) {
+  const status = doc.verificationStatus || 'unverified';
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.unverified;
   const Icon = cfg.icon;
   
   const getStatusIcon = () => {
-    if (doc.verificationStatus === 'verified') return <CheckCircle className="w-4 h-4 text-emerald-500" />;
-    if (doc.verificationStatus === 'flagged') return <AlertCircle className="w-4 h-4 text-red-500" />;
+    if (status === 'verified') return <CheckCircle className="w-4 h-4 text-emerald-500" />;
+    if (status === 'flagged') return <AlertCircle className="w-4 h-4 text-red-500" />;
+    if (status === 'pending') return <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />;
     return <Clock className="w-4 h-4 text-gray-400" />;
   };
 
@@ -67,31 +110,28 @@ function DocumentItem({ doc, index, onToggle, isOpen }) {
     return 'text-red-600';
   };
 
+  const fileUrl = getFileUrl(doc.path);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`border ${cfg.borderColor} rounded-xl overflow-hidden bg-white hover:shadow-sm transition-shadow`}
+      className={`border ${cfg.borderColor} rounded-xl overflow-hidden bg-white hover:shadow-md transition-all duration-200`}
     >
       <div className="flex items-center gap-3 p-3.5 hover:bg-gray-50/50 transition-colors group">
         {/* Document Icon */}
-        <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center flex-shrink-0`}>
+        <div className={`w-10 h-10 rounded-xl ${cfg.bg} flex items-center justify-center flex-shrink-0 transition-all duration-200 group-hover:scale-105`}>
           <FileText className={`w-5 h-5 ${cfg.textColor}`} />
         </div>
 
         {/* Document Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <a
-              href={`${BASE}${doc.path}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-gray-900 hover:text-primary-600 hover:underline truncate transition-colors"
-            >
-              {doc.originalName || doc.filename}
-            </a>
-            <span className="text-[10px] text-gray-400 uppercase flex-shrink-0 px-2 py-0.5 bg-gray-100 rounded">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-gray-900 truncate">
+              {doc.originalName || doc.filename || 'Untitled Document'}
+            </span>
+            <span className="text-[10px] text-gray-400 uppercase flex-shrink-0 px-2 py-0.5 bg-gray-100 rounded-full">
               {doc.docType?.replace('_', ' ') || 'Document'}
             </span>
           </div>
@@ -129,26 +169,35 @@ function DocumentItem({ doc, index, onToggle, isOpen }) {
 
         {/* Actions */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          <a
-            href={`${BASE}${doc.path}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-600 transition-colors"
-            title="View Document"
-          >
-            <Eye className="w-4 h-4" />
-          </a>
-          <a
-            href={`${BASE}${doc.path}`}
-            download
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-600 transition-colors"
-            title="Download"
-          >
-            <Download className="w-4 h-4" />
-          </a>
+          {fileUrl && (
+            <>
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-600 transition-colors"
+                title="View Document"
+                onClick={(e) => {
+                  if (!fileUrl) {
+                    e.preventDefault();
+                    toast.error('Document URL not available');
+                  }
+                }}
+              >
+                <Eye className="w-4 h-4" />
+              </a>
+              <button
+                onClick={() => onDownload?.(doc)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-600 transition-colors"
+                title="Download"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </>
+          )}
           {doc.verificationNotes?.length > 0 && (
             <button
-              onClick={() => onToggle(doc.filename)}
+              onClick={() => onToggle(doc._id || doc.filename)}
               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-600 transition-colors"
               title={isOpen ? 'Hide details' : 'Show details'}
             >
@@ -170,7 +219,7 @@ function DocumentItem({ doc, index, onToggle, isOpen }) {
           >
             <div className="px-3.5 pb-3.5 pt-1 border-t border-gray-100">
               <p className="text-[10px] font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
-                <Info className="w-3 h-3" /> Verification Notes
+                <Info className="w-3 h-3" /> Verification Details
               </p>
               <ul className="space-y-1.5">
                 {doc.verificationNotes.map((note, i) => (
@@ -178,11 +227,11 @@ function DocumentItem({ doc, index, onToggle, isOpen }) {
                     <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
                       note.toLowerCase().includes('pass') || note.toLowerCase().includes('clear') 
                         ? 'bg-emerald-400' 
-                        : note.toLowerCase().includes('warn') 
+                        : note.toLowerCase().includes('warn') || note.toLowerCase().includes('review')
                         ? 'bg-amber-400' 
                         : 'bg-red-400'
                     }`} />
-                    {note}
+                    <span className="flex-1">{note}</span>
                   </li>
                 ))}
               </ul>
@@ -196,17 +245,26 @@ function DocumentItem({ doc, index, onToggle, isOpen }) {
 
 // ─── Main Component ─────────────────────────────────────────────────────
 export default function DocumentVerification({ property, canVerify, onUpdated }) {
-  const [documents, setDocuments] = useState(property.documents || []);
+  const [documents, setDocuments] = useState([]);
   const [running, setRunning] = useState(false);
   const [expanded, setExpanded] = useState(null);
-  const [stats, setStats] = useState({ verified: 0, flagged: 0, unverified: 0 });
+  const [stats, setStats] = useState({ verified: 0, flagged: 0, pending: 0, unverified: 0 });
+  const [isUploading, setIsUploading] = useState(false);
+
+  // ─── Initialize Documents ───────────────────────────────────────────
+  useEffect(() => {
+    if (property?.documents) {
+      setDocuments(property.documents);
+    }
+  }, [property]);
 
   // ─── Calculate Statistics ───────────────────────────────────────────
   useEffect(() => {
     const verified = documents.filter(d => d.verificationStatus === 'verified').length;
     const flagged = documents.filter(d => d.verificationStatus === 'flagged').length;
+    const pending = documents.filter(d => d.verificationStatus === 'pending').length;
     const unverified = documents.filter(d => !d.verificationStatus || d.verificationStatus === 'unverified').length;
-    setStats({ verified, flagged, unverified });
+    setStats({ verified, flagged, pending, unverified });
   }, [documents]);
 
   // ─── Run Verification ────────────────────────────────────────────────
@@ -219,45 +277,96 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
       return;
     }
 
-    // Check retry limit
-    const retryCount = documents.filter(d => d.verificationAttempts > 0).length;
-    if (retryCount >= CONSTRAINTS.verification.maxRetries) {
-      toast.warning(`Maximum retry limit (${CONSTRAINTS.verification.maxRetries}) reached. Please contact support.`);
+    // Check if there are any documents
+    if (documents.length === 0) {
+      toast.warning('No documents to verify. Please upload documents first.');
       return;
     }
 
     setRunning(true);
+    const toastId = toast.loading('Verifying documents...');
+    
     try {
-      const { data } = await verifyDocuments(property._id);
-      setDocuments(data.data);
-      onUpdated?.(data.data);
+      const response = await verifyDocuments(property._id);
+      const verifiedDocs = response.data?.data || response.data || [];
+      
+      setDocuments(verifiedDocs);
+      
+      // Calculate new stats
+      const newStats = verifiedDocs.filter(d => d.verificationStatus === 'verified').length;
       
       // Show result summary
-      const newStats = data.data.filter(d => d.verificationStatus === 'verified').length;
-      if (newStats === data.data.length) {
-        toast.success('🎉 All documents verified successfully!');
+      if (newStats === verifiedDocs.length) {
+        toast.success('🎉 All documents verified successfully!', { id: toastId });
       } else if (newStats > 0) {
-        toast.success(`✅ ${newStats} of ${data.data.length} documents verified.`);
+        toast.success(`✅ ${newStats} of ${verifiedDocs.length} documents verified.`, { id: toastId });
       } else {
-        toast.warning('⚠️ Documents need manual review.');
+        toast.warning('⚠️ Documents need manual review.', { id: toastId });
       }
+      
+      onUpdated?.(verifiedDocs);
+      
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Verification failed. Please try again.');
+      console.error('Verification error:', err);
+      toast.error(err.response?.data?.message || 'Verification failed. Please try again.', { id: toastId });
+    } finally {
+      setRunning(false);
     }
-    setRunning(false);
   };
 
   // ─── Toggle Expand ───────────────────────────────────────────────────
-  const toggleExpand = (filename) => {
-    setExpanded(expanded === filename ? null : filename);
+  const toggleExpand = (id) => {
+    setExpanded(expanded === id ? null : id);
   };
 
-  if (!documents || documents.length === 0) return null;
+  // ─── Handle Download ─────────────────────────────────────────────────
+  const handleDownload = (doc) => {
+    const fileUrl = getFileUrl(doc.path);
+    if (!fileUrl) {
+      toast.error('Document URL not available');
+      return;
+    }
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = doc.originalName || doc.filename || 'document';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Download started');
+  };
+
+  // ─── Get Total Documents ────────────────────────────────────────────
+  const totalDocs = documents.length;
+  
+  if (totalDocs === 0) {
+    return (
+      <div className="card p-6 text-center">
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="p-4 bg-gray-100 rounded-full mb-4">
+            <FileText className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-sm font-medium text-gray-900 mb-1">No Documents</h3>
+          <p className="text-xs text-gray-500">No documents have been uploaded for this property.</p>
+          {canVerify && (
+            <button
+              className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors"
+              onClick={() => toast.info('Upload documents to verify them')}
+            >
+              <Upload className="w-4 h-4 inline mr-1" />
+              Upload Documents
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="card p-5">
       {/* ─── Header ────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
         <div>
           <div className="flex items-center gap-2">
             <div className="p-2 bg-primary-100 rounded-xl text-primary-600">
@@ -266,7 +375,7 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
             <div>
               <h3 className="font-semibold text-gray-900">Document Verification</h3>
               <p className="text-xs text-gray-400">
-                {documents.length} document{documents.length > 1 ? 's' : ''} uploaded
+                {totalDocs} document{totalDocs > 1 ? 's' : ''} uploaded
               </p>
             </div>
           </div>
@@ -279,9 +388,14 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
               <CheckCircle className="w-3 h-3" /> {stats.verified} Verified
             </span>
           )}
+          {stats.pending > 0 && (
+            <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> {stats.pending} Processing
+            </span>
+          )}
           {stats.flagged > 0 && (
             <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" /> {stats.flagged} Needs Review
+              <AlertCircle className="w-3 h-3" /> {stats.flagged} Review
             </span>
           )}
           {stats.unverified > 0 && (
@@ -294,7 +408,7 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
 
       {/* ─── Verification Button ──────────────────────────────────────── */}
       {canVerify && (
-        <div className="flex items-center gap-3 mb-4 p-3 bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl border border-primary-100/50">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 p-3 bg-gradient-to-br from-primary-50 to-indigo-50 rounded-xl border border-primary-100/50">
           <div className="flex-1">
             <p className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-primary-500" />
@@ -302,15 +416,15 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
             </p>
             <p className="text-xs text-gray-500">
               {running ? 'Scanning documents...' : 
-               stats.verified === documents.length ? 'All documents verified ✅' : 
-               `Verify ${documents.length - stats.verified} document${documents.length - stats.verified > 1 ? 's' : ''}`}
+               stats.verified === totalDocs ? 'All documents verified ✅' : 
+               `${totalDocs - stats.verified} document${totalDocs - stats.verified > 1 ? 's' : ''} remaining`}
             </p>
           </div>
           <button
             onClick={runVerification}
-            disabled={running || stats.verified === documents.length}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
-              stats.verified === documents.length
+            disabled={running || stats.verified === totalDocs}
+            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              stats.verified === totalDocs
                 ? 'bg-emerald-50 text-emerald-700 cursor-default'
                 : running
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -319,10 +433,10 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
           >
             {running ? (
               <>
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Scanning...
               </>
-            ) : stats.verified === documents.length ? (
+            ) : stats.verified === totalDocs ? (
               <>
                 <CheckCircle className="w-4 h-4" />
                 Verified
@@ -338,14 +452,15 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
       )}
 
       {/* ─── Documents List ───────────────────────────────────────────── */}
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
         {documents.map((doc, index) => (
           <DocumentItem
-            key={doc.filename || index}
+            key={doc._id || doc.filename || index}
             doc={doc}
             index={index}
-            isOpen={expanded === doc.filename}
+            isOpen={expanded === (doc._id || doc.filename)}
             onToggle={toggleExpand}
+            onDownload={handleDownload}
           />
         ))}
       </div>
@@ -357,6 +472,12 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
             <Shield className="w-3 h-3 text-emerald-500" />
             {stats.verified} verified
           </span>
+          {stats.pending > 0 && (
+            <span className="flex items-center gap-1">
+              <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />
+              {stats.pending} processing
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <AlertCircle className="w-3 h-3 text-red-500" />
             {stats.flagged} flagged
@@ -368,7 +489,7 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
         </div>
         <div className="flex items-center gap-2 text-[10px] text-gray-400">
           <Lock className="w-3 h-3" />
-          <span>Secure verification</span>
+          <span>Secure</span>
           <span className="w-px h-3 bg-gray-200"></span>
           <Award className="w-3 h-3" />
           <span>AI-powered</span>
@@ -377,3 +498,22 @@ export default function DocumentVerification({ property, canVerify, onUpdated })
     </div>
   );
 }
+
+// ─── Custom Scrollbar Styles ──────────────────────────────────────────
+// Add this to your global CSS or tailwind config
+/*
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+*/
