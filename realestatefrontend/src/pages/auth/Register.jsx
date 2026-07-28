@@ -1,41 +1,39 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import axios from "axios";
-import {
-  Building2,
-  Eye,
-  EyeOff,
-  User,
-  Mail,
-  Phone,
-  Lock,
-  Key,
-  Shield,
-  CheckCircle,
-  Users,
-  UserCheck,
-  ArrowRight,
-  AlertCircle,
+import { 
+  Building2, Eye, EyeOff, Mail, User, Phone, 
+  ShieldCheck, Sparkles, CheckCircle, AlertCircle,
+  ArrowLeft, Lock, Key, UserPlus, Award
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AuthFooter from "../../components/layout/AuthFooter";
+import { motion } from "framer-motion";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../../firebase";
+
+const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
 
 export default function Register() {
   const navigate = useNavigate();
 
   const [showPw, setShowPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("buyer");
-  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+
+  const [countdown, setCountdown] = useState(30);
+  const [canResend, setCanResend] = useState(false);
 
   const {
     register,
     handleSubmit,
     getValues,
     watch,
-    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -43,384 +41,588 @@ export default function Register() {
     },
   });
 
-  const watchPassword = watch("password");
-  const watchRole = watch("role");
+  const email = watch("email");
 
-  // Password strength checker
-  const checkPasswordStrength = (password) => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^a-zA-Z0-9]/.test(password)) strength++;
-    setPasswordStrength(strength);
+  useEffect(() => {
+    let timer;
+    if (showOTP && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    if (countdown === 0) {
+      setCanResend(true);
+    }
+    return () => clearInterval(timer);
+  }, [countdown, showOTP]);
+
+  // ─── Send OTP ──────────────────────────────────────────────────────
+  const sendOTP = async () => {
+    const data = getValues();
+    if (!data.email) {
+      toast.error("Please enter your email first.");
+      return;
+    }
+    try {
+      setOtpLoading(true);
+      const res = await axios.post(`${API}/send-otp`, { email: data.email });
+      toast.success(res.data.message || "📧 OTP sent successfully!");
+      setShowOTP(true);
+      setOtpSent(true);
+      setCountdown(30);
+      setCanResend(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Unable to send OTP");
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
-  const getStrengthColor = () => {
-    if (passwordStrength <= 2) return "bg-red-500";
-    if (passwordStrength === 3) return "bg-yellow-500";
-    if (passwordStrength >= 4) return "bg-green-500";
-    return "bg-gray-200";
-  };
-
-  const getStrengthText = () => {
-    if (passwordStrength <= 2) return "Weak";
-    if (passwordStrength === 3) return "Medium";
-    if (passwordStrength >= 4) return "Strong";
-    return "";
-  };
-
-  // ======================
-  // REGISTER
-  // ======================
+  // ─── Verify OTP & Register ────────────────────────────────────────
   const onSubmit = async (data) => {
     try {
       setLoading(true);
-
-      const res = await axios.post(
-        "https://realepro.onrender.com/api/auth/register",
-        data
-      );
-
+      const res = await axios.post(`${API}/verify-otp`, data);
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify(res.data.user)
-      );
-
-      toast.success("Registration Successful! 🎉");
-
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      toast.success("🎉 Registration Successful! Welcome to PropEstate.");
       navigate("/dashboard");
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Registration Failed"
-      );
+      toast.error(err.response?.data?.message || "Registration Failed");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#1a2332] to-[#2d1b69] flex items-center justify-center px-4 py-10 relative overflow-hidden">
+  // ─── Google Registration Handler ──────────────────────────────────
+  const handleGoogleSignUp = async () => {
+    try {
+      setGoogleLoading(true);
       
-      {/* Animated Background Elements */}
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      const res = await axios.post(`${API}/google-register`, {
+        email: user.email,
+        name: user.displayName || user.email.split('@')[0],
+        googleId: user.uid,
+        avatar: user.photoURL || '',
+        role: getValues("role") || "buyer"
+      });
+      
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      
+      toast.success("🎉 Google Registration Successful! Welcome to PropEstate.");
+      navigate("/dashboard");
+    } catch (error) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast.error("Sign-in was cancelled");
+      } else if (error.code === 'auth/popup-blocked') {
+        toast.error("Popup was blocked. Please allow popups for this site and try again.");
+      } else {
+        toast.error(error.message || "Google Registration Failed");
+      }
+      console.error("Google Sign-Up Error:", error);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+      {/* ─── Animated Background ────────────────────────────────────── */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-white/5 rounded-full"></div>
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-200/10 rounded-full blur-3xl"></div>
+        
+        {[...Array(15)].map((_, i) => (
+          <motion.div
+            key={`dot-${i}`}
+            animate={{
+              y: [0, -30, 0],
+              x: [0, 20, 0],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 4,
+              repeat: Infinity,
+              delay: Math.random() * 3,
+            }}
+            className="absolute w-1.5 h-1.5 bg-primary-200/30 rounded-full"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+            }}
+          />
+        ))}
       </div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Header with Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-xl shadow-blue-500/30 mb-4 hover:scale-110 transition-transform duration-300">
-            <Building2 className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold text-white tracking-tight">
-            Create Account
-          </h1>
-          <p className="text-blue-200/80 mt-2 text-sm">
-            Join thousands of satisfied property seekers
-          </p>
-        </div>
+      {/* ─── Main Container ──────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 w-full max-w-md"
+      >
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50">
+          
+          {/* ─── Back Button ───────────────────────────────────────────── */}
+          <button
+            onClick={() => navigate("/login")}
+            className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-colors mb-4 text-sm group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Login
+          </button>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl shadow-black/30 p-8 md:p-10 border border-white/10">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            
-            {/* Full Name */}
+          {/* ─── Logo ─────────────────────────────────────────────────── */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-xl">
+              <UserPlus className="w-8 h-8 text-white" />
+            </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
+              <span className="text-2xl font-bold text-gray-900">PropEstate</span>
+              <p className="text-gray-500 text-xs">Create Your Account</p>
+            </div>
+          </div>
+
+          {/* ─── Badge ────────────────────────────────────────────────── */}
+          <div className="flex justify-center mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200">
+              <Sparkles className="w-4 h-4 text-emerald-500" />
+              <span className="text-gray-700 text-xs font-medium">Join the PropEstate Community</span>
+            </div>
+          </div>
+
+          {/* ─── Header ───────────────────────────────────────────────── */}
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Create Account ✨
+            </h2>
+            <p className="mt-1 text-gray-500 text-sm">
+              Join thousands of happy buyers and agents
+            </p>
+          </div>
+
+          {/* ─── Stats ────────────────────────────────────────────────── */}
+          <div className="flex justify-around mt-4 py-3 border-y border-gray-100">
+            {[
+              { value: "10K+", label: "Properties" },
+              { value: "500+", label: "Agents" },
+              { value: "4.9", label: "Rating" },
+            ].map((stat, index) => (
+              <div key={index} className="text-center">
+                <h3 className="text-lg font-bold text-gray-900">{stat.value}</h3>
+                <p className="text-gray-500 text-[10px]">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* ─── Google Sign Up Button ────────────────────────────────── */}
+          <div className="mt-6">
+            <motion.button
+              onClick={handleGoogleSignUp}
+              disabled={googleLoading}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full relative group"
+              type="button"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 via-yellow-500/20 to-green-500/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="relative h-12 rounded-xl bg-white border-2 border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-50 via-yellow-50 to-green-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {googleLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-gray-700 font-medium relative z-10">Signing up...</span>
+                  </>
+                ) : (
+                  <>
+                    <img 
+                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                      alt="Google" 
+                      className="w-5 h-5 relative z-10"
+                    />
+                    <span className="text-gray-700 font-medium relative z-10 group-hover:text-gray-900 transition-colors">
+                      Sign up with Google
+                    </span>
+                    <ArrowLeft className="w-4 h-4 text-gray-400 relative z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-x-2 group-hover:translate-x-0 rotate-180" />
+                  </>
+                )}
+              </div>
+            </motion.button>
+
+            {/* Popup Warning */}
+            {googleLoading && (
+              <p className="text-xs text-center text-gray-500 mt-2 animate-pulse">
+                ⏳ Please allow the popup window to continue...
+              </p>
+            )}
+          </div>
+
+          {/* ─── Divider ───────────────────────────────────────────────── */}
+          <div className="relative flex items-center justify-center my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <span className="relative bg-white/80 px-4 text-xs text-gray-500">
+              Or sign up with email
+            </span>
+          </div>
+
+          {/* ─── Form ─────────────────────────────────────────────────── */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* ─── Name ────────────────────────────────────────────────── */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Full Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <User className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                  focusedField === 'name' ? 'text-primary-600' : 'text-gray-400'
+                }`} />
                 <input
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400"
+                  type="text"
                   placeholder="John Doe"
-                  {...register("name", {
+                  onFocus={() => setFocusedField('name')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                    errors.name
+                      ? 'border-red-400 focus:ring-4 focus:ring-red-200'
+                      : focusedField === 'name'
+                      ? 'border-primary-500 ring-4 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  {...register("name", { 
                     required: "Name is required",
                     minLength: {
                       value: 2,
-                      message: "Name must be at least 2 characters",
-                    },
+                      message: "Name must be at least 2 characters"
+                    }
                   })}
                 />
               </div>
               {errors.name && (
-                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
-                  {errors.name.message}
-                </p>
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                >
+                  <AlertCircle className="w-3 h-3" /> {errors.name.message}
+                </motion.p>
               )}
             </div>
 
-            {/* Email */}
+            {/* ─── Email ───────────────────────────────────────────────── */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Email Address <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="email"
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400"
-                  placeholder="you@example.com"
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: "Enter a valid email address",
-                    },
-                  })}
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                    focusedField === 'email' ? 'text-primary-600' : 'text-gray-400'
+                  }`} />
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                      errors.email
+                        ? 'border-red-400 focus:ring-4 focus:ring-red-200'
+                        : focusedField === 'email'
+                        ? 'border-primary-500 ring-4 ring-primary-100'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    {...register("email", { 
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Invalid email address"
+                      }
+                    })}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={sendOTP}
+                  disabled={otpLoading || !email}
+                  className="px-4 h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl transition-all shadow-lg shadow-primary-500/30 hover:shadow-xl disabled:opacity-60 flex items-center justify-center gap-2 whitespace-nowrap"
+                >
+                  {otpLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      <span className="text-sm hidden sm:inline">Send OTP</span>
+                    </>
+                  )}
+                </button>
               </div>
               {errors.email && (
-                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
-                  {errors.email.message}
-                </p>
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                >
+                  <AlertCircle className="w-3 h-3" /> {errors.email.message}
+                </motion.p>
+              )}
+              {otpSent && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-emerald-600 text-xs mt-1.5 flex items-center gap-1"
+                >
+                  <CheckCircle className="w-3 h-3" />
+                  OTP sent to your email
+                </motion.p>
               )}
             </div>
 
-            {/* Phone */}
+            {/* ─── Phone ───────────────────────────────────────────────── */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                Phone Number
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Phone Number <span className="text-gray-400 text-xs">(optional)</span>
               </label>
               <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                  focusedField === 'phone' ? 'text-primary-600' : 'text-gray-400'
+                }`} />
                 <input
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400"
+                  type="tel"
                   placeholder="9876543210"
+                  onFocus={() => setFocusedField('phone')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                    focusedField === 'phone'
+                      ? 'border-primary-500 ring-4 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
                   {...register("phone", {
                     pattern: {
                       value: /^[0-9]{10}$/,
-                      message: "Enter a valid 10-digit phone number",
-                    },
+                      message: "Please enter a valid 10-digit phone number"
+                    }
                   })}
                 />
               </div>
               {errors.phone && (
-                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
-                  {errors.phone.message}
-                </p>
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                >
+                  <AlertCircle className="w-3 h-3" /> {errors.phone.message}
+                </motion.p>
               )}
             </div>
 
-            {/* Role Selection - Enhanced UI */}
+            {/* ─── Role ────────────────────────────────────────────────── */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Register As <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRole("buyer");
-                    setValue("role", "buyer");
-                  }}
-                  className={`h-12 rounded-xl border-2 transition-all duration-300 flex items-center justify-center gap-2 ${
-                    watchRole === "buyer"
-                      ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm shadow-blue-100"
-                      : "border-gray-200 hover:border-gray-300 text-gray-600 hover:bg-gray-50"
+              <div className="relative">
+                <Award className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                  focusedField === 'role' ? 'text-primary-600' : 'text-gray-400'
+                }`} />
+                <select
+                  onFocus={() => setFocusedField('role')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 appearance-none ${
+                    focusedField === 'role'
+                      ? 'border-primary-500 ring-4 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
                   }`}
+                  {...register("role")}
                 >
-                  <UserCheck size={18} />
-                  <span className="font-medium">Buyer</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRole("agent");
-                    setValue("role", "agent");
-                  }}
-                  className={`h-12 rounded-xl border-2 transition-all duration-300 flex items-center justify-center gap-2 ${
-                    watchRole === "agent"
-                      ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm shadow-blue-100"
-                      : "border-gray-200 hover:border-gray-300 text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <Users size={18} />
-                  <span className="font-medium">Agent</span>
-                </button>
+                  <option value="buyer">🏠 Buyer</option>
+                  <option value="agent">🤝 Agent</option>
+                </select>
               </div>
-              <input type="hidden" {...register("role")} value={selectedRole} />
             </div>
 
-            {/* Password */}
+            {/* ─── Password ────────────────────────────────────────────── */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                  focusedField === 'password' ? 'text-primary-600' : 'text-gray-400'
+                }`} />
                 <input
                   type={showPw ? "text" : "password"}
-                  className="w-full h-12 pl-11 pr-12 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400"
                   placeholder="Minimum 6 characters"
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-12 pl-12 pr-12 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                    errors.password
+                      ? 'border-red-400 focus:ring-4 focus:ring-red-200'
+                      : focusedField === 'password'
+                      ? 'border-primary-500 ring-4 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
                   {...register("password", {
                     required: "Password is required",
                     minLength: {
                       value: 6,
-                      message: "Password must be at least 6 characters",
+                      message: "Minimum 6 characters",
                     },
+                    pattern: {
+                      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                      message: "Must contain uppercase, lowercase, and number"
+                    }
                   })}
-                  onChange={(e) => {
-                    register("password").onChange(e);
-                    checkPasswordStrength(e.target.value);
-                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
-                  {errors.password.message}
-                </p>
-              )}
-
-              {/* Password Strength Indicator */}
-              {watchPassword && (
-                <div className="mt-2">
-                  <div className="flex gap-1 h-1.5">
-                    {[1, 2, 3, 4, 5].map((level) => (
-                      <div
-                        key={level}
-                        className={`flex-1 rounded-full transition-all duration-300 ${
-                          level <= passwordStrength
-                            ? passwordStrength <= 2
-                              ? 'bg-red-500'
-                              : passwordStrength === 3
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
-                            : 'bg-gray-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs mt-1.5 flex items-center gap-2">
-                    <span className={`font-medium ${
-                      passwordStrength <= 2 ? 'text-red-500' :
-                      passwordStrength === 3 ? 'text-yellow-500' :
-                      'text-green-500'
-                    }`}>
-                      {getStrengthText()}
-                    </span>
-                    <span className="text-gray-400">|</span>
-                    <span className="text-gray-500">
-                      {passwordStrength <= 2 ? 'Add uppercase, numbers & special chars' :
-                       passwordStrength === 3 ? 'Good password' :
-                       'Strong password'}
-                    </span>
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type={showConfirmPw ? "text" : "password"}
-                  className="w-full h-12 pl-11 pr-12 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400"
-                  placeholder="Re-enter your password"
-                  {...register("confirmPassword", {
-                    required: "Please confirm your password",
-                    validate: (value) =>
-                      value === getValues("password") ||
-                      "Passwords do not match",
-                  })}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPw(!showConfirmPw)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
                 >
-                  {showConfirmPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                  <span className="inline-block w-1 h-1 bg-red-500 rounded-full"></span>
-                  {errors.confirmPassword.message}
-                </p>
+                  <AlertCircle className="w-3 h-3" /> {errors.password.message}
+                </motion.p>
               )}
             </div>
 
-            {/* Register Button */}
-            <button
+            {/* ─── OTP Section ─────────────────────────────────────────── */}
+            {showOTP && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ duration: 0.3 }}
+                className="space-y-3"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email OTP <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <ShieldCheck className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                      focusedField === 'otp' ? 'text-primary-600' : 'text-gray-400'
+                    }`} />
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="000000"
+                      onFocus={() => setFocusedField('otp')}
+                      onBlur={() => setFocusedField(null)}
+                      className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 text-center tracking-[8px] text-lg font-bold ${
+                        errors.otp
+                          ? 'border-red-400 focus:ring-4 focus:ring-red-200'
+                          : focusedField === 'otp'
+                          ? 'border-primary-500 ring-4 ring-primary-100'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      {...register("otp", {
+                        required: "OTP is required",
+                        minLength: {
+                          value: 6,
+                          message: "OTP must be 6 digits",
+                        },
+                      })}
+                    />
+                  </div>
+                  {errors.otp && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
+                    >
+                      <AlertCircle className="w-3 h-3" /> {errors.otp.message}
+                    </motion.p>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center text-sm">
+                  {!canResend ? (
+                    <span className="text-gray-500 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-primary-500" />
+                      Resend in {countdown}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={sendOTP}
+                      className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 hover:underline"
+                    >
+                      <Mail className="w-4 h-4" /> Resend OTP
+                    </button>
+                  )}
+                  <span className="flex items-center gap-1 text-emerald-600 font-medium text-xs">
+                    <CheckCircle className="w-4 h-4" />
+                    OTP Sent
+                  </span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ─── Register Button ────────────────────────────────────── */}
+            <motion.button
               type="submit"
-              disabled={loading}
-              className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
+              disabled={!showOTP || loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Creating Account...
                 </>
               ) : (
                 <>
-                  Create Account
-                  <ArrowRight size={18} />
+                  <UserPlus className="w-4 h-4" />
+                  {showOTP ? "Verify OTP & Create Account" : "Create Account"}
                 </>
               )}
-            </button>
+            </motion.button>
+          </form>
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">already have an account?</span>
-              </div>
-            </div>
-
-            {/* Security Note */}
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm text-gray-700 font-medium">
-                    Secure Registration
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Your information is encrypted and protected. We never share your data.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Login Link */}
+          {/* ─── Login Link ────────────────────────────────────────────── */}
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Already have an account?{" "}
             <Link
               to="/login"
-              className="block text-center text-sm text-gray-600 hover:text-blue-600 font-medium transition-colors"
+              className="font-semibold text-primary-600 hover:text-primary-700 transition-all hover:underline"
             >
-              Already have an account? Sign In →
+              Sign In
             </Link>
+          </p>
 
-          </form>
+          {/* ─── Trust Badges ──────────────────────────────────────────── */}
+          <div className="mt-4 flex justify-center gap-6 text-xs text-gray-400">
+            <div className="flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-green-500" />
+              <span>SSL Secure</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3 text-green-500" />
+              <span>Verified</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>Free to Join</span>
+            </div>
+          </div>
+
+          {/* ─── Footer ────────────────────────────────────────────────── */}
+          <AuthFooter dark={false} />
         </div>
-
-        <AuthFooter dark />
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,18 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth');
 const {
-  getPropertyReviews,
+  getReviews,
+  getReview,
   createReview,
   updateReview,
   deleteReview,
+  getPropertyReviews,
+  getUserReviews,
 } = require('../controllers/reviewController');
-const { protect } = require('../middleware/auth');
 
+// Public routes
+router.get('/', getReviews);
+router.get('/:id', getReview);
+router.get('/property/:propertyId', getPropertyReviews);
+
+// Protected routes
 router.use(protect);
 
-router.get('/property/:propertyId', getPropertyReviews);
-router.post('/property/:propertyId', createReview);
+router.post('/', createReview);
 router.put('/:id', updateReview);
 router.delete('/:id', deleteReview);
+router.get('/user/me', getUserReviews);
 
-module.exports = router;
+module.exports = router; // ✅ Make sure this is here

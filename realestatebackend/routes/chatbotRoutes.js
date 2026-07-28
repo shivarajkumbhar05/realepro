@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { sendMessage } = require('../controllers/chatbotController');
-const { protect } = require('../middleware/auth');
+const {
+  chat,
+  getChatHistory,
+  clearChat,
+  getSuggestions,
+} = require('../controllers/chatbotController');
 
-router.use(protect);
+// Public routes
+router.post('/chat', chat);
+router.get('/suggestions', getSuggestions);
 
-router.post('/message', sendMessage);
+// Protected routes
+router.get('/history', getChatHistory);
+router.delete('/clear', clearChat);
 
-module.exports = router;
+module.exports = router; // ✅ Make sure this is here

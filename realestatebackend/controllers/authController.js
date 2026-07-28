@@ -26,12 +26,10 @@ const sendTokenResponse = (user, statusCode, res, message = 'Success') => {
 };
 
 // ─── @route  POST /api/auth/register ────────────────────────────────────────
-// ─── @access Public
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role, phone } = req.body;
 
-    // Prevent self-assigning 'admin' role
     const allowedRoles = ['buyer', 'agent'];
     const assignedRole = allowedRoles.includes(role) ? role : 'buyer';
 
@@ -48,7 +46,6 @@ exports.register = async (req, res) => {
 };
 
 // ─── @route  POST /api/auth/login ────────────────────────────────────────────
-// ─── @access Public
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -73,7 +70,6 @@ exports.login = async (req, res) => {
 };
 
 // ─── @route  GET /api/auth/me ─────────────────────────────────────────────────
-// ─── @access Private (all roles)
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -84,7 +80,6 @@ exports.getMe = async (req, res) => {
 };
 
 // ─── @route  PUT /api/auth/updateprofile ─────────────────────────────────────
-// ─── @access Private (all roles)
 exports.updateProfile = async (req, res) => {
   try {
     const { name, phone } = req.body;
@@ -106,7 +101,6 @@ exports.updateProfile = async (req, res) => {
 };
 
 // ─── @route  PUT /api/auth/changepassword ────────────────────────────────────
-// ─── @access Private (all roles)
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -126,8 +120,6 @@ exports.changePassword = async (req, res) => {
 };
 
 // ─── @route  POST /api/auth/reset-password ───────────────────────────────────
-// ─── @access Public
-// No OTP verification — resets the password for the given email directly.
 exports.resetPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -150,8 +142,76 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+// ─── @route  POST /api/auth/google-register ──────────────────────────────────
+exports.googleRegister = async (req, res) => {
+  try {
+    const { idToken, userData } = req.body;
+    
+    const { email, displayName, photoURL, uid } = userData || {};
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required from Google authentication.' 
+      });
+    }
+    
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+      
+      user = await User.create({
+        name: displayName || email.split('@')[0],
+        email: email,
+        password: randomPassword,
+        role: 'buyer',
+        googleId: uid,
+        isVerified: true,
+        isActive: true,
+        avatar: photoURL || null,
+        phone: null
+      });
+    } else {
+      let updated = false;
+      
+      if (displayName && !user.name) {
+        user.name = displayName;
+        updated = true;
+      }
+      
+      if (photoURL && !user.avatar) {
+        user.avatar = photoURL;
+        updated = true;
+      }
+      
+      if (uid && !user.googleId) {
+        user.googleId = uid;
+        updated = true;
+      }
+      
+      if (!user.isVerified) {
+        user.isVerified = true;
+        updated = true;
+      }
+      
+      if (updated) {
+        await user.save();
+      }
+    }
+    
+    sendTokenResponse(user, 200, res, 'Google login successful');
+    
+  } catch (error) {
+    console.error('Google register error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
+
 // ─── @route  GET /api/auth/logout ────────────────────────────────────────────
-// ─── @access Private
 exports.logout = (req, res) => {
   res.status(200).json({ success: true, message: 'Logged out successfully. Please clear your token on client.' });
 };

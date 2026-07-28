@@ -15,12 +15,17 @@ const { protect, authorize } = require('../middleware/auth');
 router.use(protect);
 router.use(authorize('admin'));
 
+// Dashboard
 router.get('/dashboard', getDashboard);
+
+// User Management
 router.get('/users', getAllUsers);
 router.get('/users/:id', getUserDetail);
 router.post('/users', createUser);
 router.put('/users/:id', updateUser);
 router.delete('/users/:id', deleteUser);
+
+// Property Management
 router.get('/pending-properties', getPendingProperties);
 
 module.exports = router;

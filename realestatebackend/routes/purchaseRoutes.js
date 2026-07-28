@@ -1,18 +1,32 @@
 const express = require('express');
 const router = express.Router();
+const { protect, authorize } = require('../middleware/auth');
 const {
   createPurchase,
   getMyPurchases,
   getReceivedPurchases,
   updatePurchaseStatus,
+  getPurchaseStats,
+  getPurchase,
+  getAllPurchases,
 } = require('../controllers/purchaseController');
-const { protect, authorize } = require('../middleware/auth');
 
+// All purchase routes require authentication
 router.use(protect);
 
-router.post('/property/:propertyId', authorize('buyer', 'agent', 'admin'), createPurchase);
+// Buyer routes
+router.post('/property/:propertyId', createPurchase);
 router.get('/mine', getMyPurchases);
-router.get('/received', authorize('agent', 'admin'), getReceivedPurchases);
+
+// Agent/Admin routes
+router.get('/received', getReceivedPurchases);
+router.get('/stats', getPurchaseStats);
+
+// Admin only
+router.get('/all', authorize('admin'), getAllPurchases);
+
+// Common routes
+router.get('/:id', getPurchase);
 router.patch('/:id/status', updatePurchaseStatus);
 
 module.exports = router;

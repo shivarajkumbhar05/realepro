@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../../context/AuthContext";
+import axios from "axios";
 import {
   Building2,
   Eye,
@@ -9,11 +10,23 @@ import {
   Mail,
   Lock,
   Loader2,
+  Sparkles,
   Shield,
-  X,
+  Users,
+  Star,
+  CheckCircle,
+  ArrowRight,
+  Phone,
+  MessageCircle,
+  Globe
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AuthFooter from "../../components/layout/AuthFooter";
+import { motion } from "framer-motion";
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { auth, googleProvider } from "../../firebase";
+
+const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
 
 export default function Login() {
   const { login } = useAuth();
@@ -21,7 +34,8 @@ export default function Login() {
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const {
     register,
@@ -30,275 +44,428 @@ export default function Login() {
     formState: { errors },
   } = useForm();
 
+  // Check for redirect result on mount
+  useState(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          const user = result.user;
+          await handleGoogleUser(user);
+        }
+      } catch (error) {
+        console.error("Redirect result error:", error);
+      }
+    };
+    handleRedirectResult();
+  }, []);
+
   const onSubmit = async (formData) => {
     try {
       setLoading(true);
       await login(formData);
-      toast.success("Welcome Back! 🏠");
+      toast.success("🎉 Welcome Back! Let's find your dream home.");
       navigate("/dashboard");
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Login Failed"
+        error.response?.data?.message || "Login Failed. Please try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const forgotPassword = () => {
+  const forgotPassword = async () => {
     const email = getValues("email");
     if (!email) {
       toast.error("Please enter your registered email first.");
       return;
     }
-    navigate("/forgot-password", {
-      state: { email },
-    });
+    try {
+      const { data } = await axios.post(`${API}/forgot-password`, { email });
+      toast.success(data.message);
+      navigate("/forgot-password", { state: { email } });
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to send OTP");
+    }
+  };
+
+  // ─── Handle Google User ──────────────────────────────────────────
+  const handleGoogleUser = async (user) => {
+    try {
+      setGoogleLoading(true);
+      
+      const res = await axios.post(`${API}/google-register`, {
+        email: user.email,
+        name: user.displayName || user.email.split('@')[0],
+        googleId: user.uid,
+        avatar: user.photoURL || '',
+        role: "buyer"
+      });
+      
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      
+      toast.success("🎉 Google Login Successful! Welcome back.");
+      navigate("/dashboard");
+    } catch (error) {
+      if (error.response?.status === 404) {
+        toast.error("No account found. Please sign up first.");
+      } else {
+        toast.error(error.message || "Google Login Failed");
+      }
+      console.error("Google Login Error:", error);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // ─── Google Login Handler with Popup ─────────────────────────────
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      
+      // Try popup first
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      await handleGoogleUser(user);
+      
+    } catch (error) {
+      // If popup is blocked, try redirect method
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        toast.error("Popup was blocked. Please allow popups or use the redirect method.");
+        // Option: Use redirect as fallback
+        // await signInWithRedirect(auth, googleProvider);
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        toast.error("Login was cancelled");
+      } else {
+        toast.error(error.message || "Google Login Failed");
+      }
+      console.error("Google Login Error:", error);
+      setGoogleLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0f172a]">
-      
-      {/* Animated Background with Properties */}
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-4">
+      {/* Animated Background */}
       <div className="absolute inset-0">
-        {/* Gradient Orbs */}
-        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-gradient-to-tl from-indigo-600/20 via-cyan-600/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-3xl"></div>
-
-        {/* Floating Property Cards */}
-        <div className="absolute top-20 left-20 animate-float-slow opacity-30">
-          <div className="w-24 h-32 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-2">
-            <div className="w-full h-16 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-lg mb-2"></div>
-            <div className="h-2 w-3/4 bg-white/10 rounded mb-1"></div>
-            <div className="h-2 w-1/2 bg-white/10 rounded"></div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-32 right-20 animate-float-slow delay-1000 opacity-30">
-          <div className="w-28 h-36 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-2">
-            <div className="w-full h-16 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg mb-2"></div>
-            <div className="h-2 w-3/4 bg-white/10 rounded mb-1"></div>
-            <div className="h-2 w-1/2 bg-white/10 rounded"></div>
-          </div>
-        </div>
-
-        <div className="absolute top-1/3 right-1/4 animate-float-slow delay-2000 opacity-20">
-          <div className="w-20 h-28 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-2">
-            <div className="w-full h-14 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg mb-2"></div>
-            <div className="h-2 w-3/4 bg-white/10 rounded mb-1"></div>
-            <div className="h-2 w-1/2 bg-white/10 rounded"></div>
-          </div>
-        </div>
-
-        {/* Keyframe animations for floating elements */}
-        <style jsx>{`
-          @keyframes float-slow {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(2deg); }
-          }
-          @keyframes float-slow-delay {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(-2deg); }
-          }
-          .animate-float-slow {
-            animation: float-slow 6s ease-in-out infinite;
-          }
-          .animate-float-slow.delay-1000 {
-            animation: float-slow-delay 7s ease-in-out infinite;
-          }
-          .animate-float-slow.delay-2000 {
-            animation: float-slow 8s ease-in-out infinite;
-          }
-        `}</style>
-
-        {/* Property Icons scattered */}
-        <div className="absolute top-40 left-1/3 text-white/5">
-          <Building2 size={120} />
-        </div>
-        <div className="absolute bottom-40 right-1/3 text-white/5">
-          <Building2 size={100} />
-        </div>
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-200/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-200/10 rounded-full blur-3xl"></div>
+        
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={`dot-${i}`}
+            animate={{
+              y: [0, -30, 0],
+              x: [0, 20, 0],
+            }}
+            transition={{
+              duration: 4 + Math.random() * 4,
+              repeat: Infinity,
+              delay: Math.random() * 3,
+            }}
+            className="absolute w-1.5 h-1.5 bg-primary-200/30 rounded-full"
+            style={{
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+            }}
+          />
+        ))}
       </div>
 
-      {/* Login Popup/Card - Centered */}
-      <div className="relative z-10 w-full max-w-md mx-4">
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/30 border border-white/20 p-8 md:p-10">
+      {/* Main Container */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 w-full max-w-md"
+      >
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50">
           
-          {/* Close Button (optional - for popup feel) */}
-          <button 
-            onClick={() => navigate(-1)}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
-          >
-            <X size={20} />
-          </button>
-
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-500/30 mb-4">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-xl">
               <Building2 className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-[#0f172a]">
-              Welcome Back
+            <div>
+              <span className="text-2xl font-bold text-gray-900">PropEstate</span>
+              <p className="text-gray-500 text-xs">Premium Properties</p>
+            </div>
+          </div>
+
+          {/* Badge */}
+          <div className="flex justify-center mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 border border-primary-100">
+              <Sparkles className="w-4 h-4 text-primary-500" />
+              <span className="text-gray-700 text-xs font-medium">#1 Trusted Real Estate Platform</span>
+            </div>
+          </div>
+
+          {/* Header */}
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900">
+              Welcome Back! 👋
             </h2>
-            <p className="mt-2 text-[#475569]">
-              Sign in to continue managing your properties
+            <p className="mt-2 text-gray-500 text-sm">
+              Sign in to manage your properties and track listings
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Stats */}
+          <div className="flex justify-around mt-6 py-4 border-y border-gray-100">
+            {[
+              { value: "10K+", label: "Properties" },
+              { value: "500+", label: "Agents" },
+              { value: "4.9", label: "Rating" },
+            ].map((stat, index) => (
+              <div key={index} className="text-center">
+                <h3 className="text-xl font-bold text-gray-900">{stat.value}</h3>
+                <p className="text-gray-500 text-xs">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
             {/* Email */}
             <div>
-              <label className="block text-sm font-semibold text-[#0f172a] mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]" size={18} />
+              <div className="relative group">
+                <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                  focusedField === 'email' ? 'text-primary-600' : 'text-gray-400'
+                }`} />
                 <input
                   type="email"
                   placeholder="you@example.com"
-                  className="w-full h-12 pl-11 pr-4 rounded-xl border border-[#e2e8f0] bg-white/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-[#0f172a] placeholder:text-[#94a3b8]"
-                  {...register("email", {
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                    errors.email
+                      ? 'border-red-400 focus:ring-4 focus:ring-red-200'
+                      : focusedField === 'email'
+                      ? 'border-primary-500 ring-4 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  {...register("email", { 
                     required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address"
+                    }
                   })}
                 />
               </div>
               {errors.email && (
-                <p className="text-red-500 text-sm mt-1.5">{errors.email.message}</p>
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-2 flex items-center gap-1"
+                >
+                  <span className="w-1 h-1 rounded-full bg-red-400"></span>
+                  {errors.email.message}
+                </motion.p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-[#0f172a] mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8]" size={18} />
+              <div className="relative group">
+                <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                  focusedField === 'password' ? 'text-primary-600' : 'text-gray-400'
+                }`} />
                 <input
                   type={showPw ? "text" : "password"}
                   placeholder="Enter your password"
-                  className="w-full h-12 pl-11 pr-11 rounded-xl border border-[#e2e8f0] bg-white/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-[#0f172a] placeholder:text-[#94a3b8]"
-                  {...register("password", {
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-12 pl-12 pr-12 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                    errors.password
+                      ? 'border-red-400 focus:ring-4 focus:ring-red-200'
+                      : focusedField === 'password'
+                      ? 'border-primary-500 ring-4 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  {...register("password", { 
                     required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message: "Password must be at least 6 characters"
+                    }
                   })}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-blue-600 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-500 text-sm mt-1.5">{errors.password.message}</p>
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-red-500 text-xs mt-2 flex items-center gap-1"
+                >
+                  <span className="w-1 h-1 rounded-full bg-red-400"></span>
+                  {errors.password.message}
+                </motion.p>
               )}
             </div>
 
             {/* Remember & Forgot */}
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-[#475569] cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer group">
                 <input
                   type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-[#d1d5db] text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                  {...register("remember")}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 focus:ring-2 transition-all"
                 />
-                <span>Remember me</span>
+                <span className="group-hover:text-gray-900 transition-colors">
+                  Remember Me
+                </span>
               </label>
               <button
                 type="button"
                 onClick={forgotPassword}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-all flex items-center gap-1"
               >
-                Forgot password?
+                Forgot Password?
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
 
             {/* Login Button */}
-            <button
+            <motion.button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold shadow-lg shadow-primary-500/30 hover:shadow-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden group"
             >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+              
               {loading ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Signing in...
+                  <Loader2 size={20} className="animate-spin" />
+                  Signing In...
                 </>
               ) : (
                 <>
-                  Sign In
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+                  <span className="relative z-10 flex items-center gap-2">
+                    Sign In
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
                 </>
               )}
-            </button>
+            </motion.button>
 
-            {/* Divider */}
-            <div className="relative">
+            {/* Google Login Button */}
+            <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-[#e2e8f0]"></div>
+                <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white/50 text-[#94a3b8] backdrop-blur-sm">or continue with</span>
+                <span className="px-4 bg-transparent text-gray-400">Or continue with</span>
               </div>
             </div>
 
-            {/* Social Login */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                className="h-12 rounded-xl border border-[#e2e8f0] bg-white/50 hover:bg-white text-[#0f172a] font-medium transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-sm"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Google
-              </button>
-              <button
-                type="button"
-                className="h-12 rounded-xl border border-[#e2e8f0] bg-white/50 hover:bg-white text-[#0f172a] font-medium transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-sm"
-              >
-                <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                Facebook
-              </button>
-            </div>
+            {/* Google Button with Popup Fix */}
+            <motion.button
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full relative group"
+              type="button"
+            >
+              <div className="relative h-12 rounded-xl bg-white border-2 border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-50 via-yellow-50 to-green-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {googleLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-gray-700 font-medium relative z-10">Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <img 
+                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                      alt="Google" 
+                      className="w-5 h-5 relative z-10"
+                    />
+                    <span className="text-gray-700 font-medium relative z-10 group-hover:text-gray-900 transition-colors">
+                      Sign in with Google
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-gray-400 relative z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
+                  </>
+                )}
+              </div>
+            </motion.button>
+
+            {/* Popup Warning */}
+            {googleLoading && (
+              <p className="text-xs text-center text-gray-500 animate-pulse">
+                ⏳ Please allow the popup window to continue...
+              </p>
+            )}
 
             {/* Register Link */}
-            <p className="text-center text-sm text-[#475569]">
-              Don't have an account?{" "}
-              <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors">
-                Create Account
-              </Link>
-            </p>
+            <div className="text-center pt-2">
+              <p className="text-sm text-gray-500">
+                Don't have an account?{" "}
+                <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700 transition-all hover:underline">
+                  Create Account
+                </Link>
+              </p>
+            </div>
           </form>
 
-          {/* Help Section */}
-          <div className="mt-6 p-4 rounded-xl bg-[#f1f5f9]/50 backdrop-blur-sm border border-[#e2e8f0]">
-            <div className="flex items-center gap-2 text-[#0f172a] font-semibold mb-2">
-              <Shield className="w-4 h-4 text-blue-600" />
-              <span>Need Help?</span>
+          {/* Trust Badges */}
+          <div className="mt-6 flex justify-center gap-6 text-xs text-gray-400">
+            <div className="flex items-center gap-1">
+              <Shield className="w-3 h-3 text-green-500" />
+              <span>SSL Secure</span>
             </div>
-            <p className="text-sm text-[#475569] mb-3">
-              Contact our support team if you're having trouble accessing your account.
-            </p>
-            <div className="space-y-1 text-sm text-[#475569]">
-              <p>📧 realestateproperty605@gmail.com</p>
-              <p>📞 +91 9545089118</p>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="w-3 h-3 text-green-500" />
+              <span>Verified</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Star className="w-3 h-3 text-yellow-400" />
+              <span>4.9/5</span>
             </div>
           </div>
 
-          <AuthFooter />
+          {/* Support Card */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                <Phone className="w-4 h-4 text-primary-600" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-700">Need Help?</p>
+                <p className="text-[10px] text-gray-400">+91 95450 89118 • 24/7 Support</p>
+              </div>
+              <Link 
+                to="/contact" 
+                className="ml-auto text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
+              >
+                Contact
+              </Link>
+            </div>
+          </div>
+
+          <AuthFooter dark={false} />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
