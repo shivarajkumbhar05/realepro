@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { getProperties } from '../../api/properties';
 import { 
   Building2, Search, Filter, MapPin, Bed, Bath, Square, 
-  ChevronLeft, ChevronRight, Plus, Star, LayoutGrid, Map as MapIcon 
+  ChevronLeft, ChevronRight, Plus, Star, LayoutGrid, Map as MapIcon,
+  ChevronDown, ChevronUp, RefreshCw
 } from 'lucide-react';
 import AllPropertiesMap from '../../components/map/AllPropertiesMap';
 import { getPropertyImage, isValidImageUrl } from '../../utils/imageUtils';
@@ -84,7 +85,7 @@ function PropertyCard({ property, isAdmin, isAgent, user }) {
           <span className="text-lg font-bold text-primary-600">
             ₹{property.price?.toLocaleString()}
           </span>
-          <Link to={`/properties/${property._id}`} className="text-xs btn-secondary py-1 px-3">
+          <Link to={`/property/${property._id}`} className="text-xs btn-secondary py-1 px-3">
             View
           </Link>
         </div>
@@ -107,11 +108,14 @@ export default function PropertyList() {
   const { user, isAdmin, isAgent } = useAuth();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProperties, setTotalProperties] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [limit, setLimit] = useState(12); // Default limit
+  const [showAll, setShowAll] = useState(false);
   const [filters, setFilters] = useState({
     search: '', 
     type: '', 
@@ -125,14 +129,24 @@ export default function PropertyList() {
   const [viewMode, setViewMode] = useState('grid');
   const [mapProperties, setMapProperties] = useState([]);
   const [mapLoading, setMapLoading] = useState(false);
+  const [allPropertiesLoaded, setAllPropertiesLoaded] = useState(false);
 
   // ─── Load Properties ─────────────────────────────────────────────────
-  const load = useCallback(async (pg = 1, params = {}) => {
+  const load = useCallback(async (pg = 1, params = {}, loadAll = false) => {
+    const currentLimit = loadAll ? 100 : limit; // Load all if showAll is true
     setLoading(true);
     setError(null);
     
     try {
-      const response = await getProperties({ page: pg, limit: 12, ...params });
+      console.log(`Loading properties - Page: ${pg}, Limit: ${currentLimit}, LoadAll: ${loadAll}`);
+      
+      const response = await getProperties({ 
+        page: pg, 
+        limit: currentLimit, 
+        ...params 
+      });
+      
+      console.log('API Response:', response);
       
       let propertiesData = [];
       let totalPagesData = 1;
@@ -141,7 +155,7 @@ export default function PropertyList() {
       if (response?.data) {
         if (response.data.data) {
           propertiesData = response.data.data;
-          totalPagesData = response.data.pages || 1;
+          totalPagesData = response.data.pages || Math.ceil((response.data.total || 0) / currentLimit);
           totalData = response.data.total || 0;
         } else if (Array.isArray(response.data)) {
           propertiesData = response.data;
@@ -156,6 +170,15 @@ export default function PropertyList() {
       setTotalPages(totalPagesData || 1);
       setTotalProperties(totalData || propertiesData?.length || 0);
       
+      // Check if all properties are loaded
+      if (loadAll || propertiesData.length >= totalData) {
+        setAllPropertiesLoaded(true);
+      } else {
+        setAllPropertiesLoaded(false);
+      }
+      
+      console.log(`Loaded ${propertiesData.length} properties out of ${totalData}`);
+      
     } catch (err) {
       console.error('Failed to load properties:', err);
       setError(err?.response?.data?.message || err.message || 'Failed to load properties');
@@ -163,7 +186,42 @@ export default function PropertyList() {
       setTotalPages(1);
     }
     setLoading(false);
-  }, []);
+  }, [limit]);
+
+  // ─── Load All Properties ─────────────────────────────────────────────
+  const loadAllProperties = async () => {
+    setLoadingMore(true);
+    try {
+      const response = await getProperties({ 
+        page: 1, 
+        limit: 200, // Load all properties
+        ...applied 
+      });
+      
+      let propertiesData = [];
+      if (response?.data?.data) {
+        propertiesData = response.data.data;
+      } else if (Array.isArray(response?.data)) {
+        propertiesData = response.data;
+      } else if (Array.isArray(response)) {
+        propertiesData = response;
+      }
+      
+      setProperties(propertiesData);
+      setTotalProperties(propertiesData.length);
+      setTotalPages(1);
+      setAllPropertiesLoaded(true);
+      setShowAll(true);
+      
+      console.log(`Loaded all ${propertiesData.length} properties`);
+      toast.success(`Showing all ${propertiesData.length} properties`);
+    } catch (err) {
+      console.error('Failed to load all properties:', err);
+      toast.error('Failed to load all properties');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // ─── Load Map Properties ─────────────────────────────────────────────
   const loadMap = useCallback(async (params = {}) => {
@@ -190,8 +248,10 @@ export default function PropertyList() {
 
   // ─── Effects ─────────────────────────────────────────────────────────
   useEffect(() => {
-    load(1, applied);
-  }, [applied, load]);
+    if (!showAll) {
+      load(1, applied);
+    }
+  }, [applied, load, showAll]);
 
   useEffect(() => {
     if (viewMode === 'map' && mapProperties.length === 0 && !mapLoading) {
@@ -206,6 +266,8 @@ export default function PropertyList() {
     );
     setApplied(cleaned);
     setPage(1);
+    setShowAll(false);
+    setAllPropertiesLoaded(false);
   };
 
   const clearFilters = () => {
@@ -215,6 +277,8 @@ export default function PropertyList() {
     });
     setApplied({});
     setPage(1);
+    setShowAll(false);
+    setAllPropertiesLoaded(false);
   };
 
   const goPage = (pg) => {
@@ -238,6 +302,7 @@ export default function PropertyList() {
           {!loading && (
             <p className="text-sm text-gray-500">
               {totalProperties} properties found
+              {showAll && ' (Showing all)'}
             </p>
           )}
         </div>
@@ -421,11 +486,39 @@ export default function PropertyList() {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
+          {/* Show All / Pagination Controls */}
+          {!showAll && totalProperties > properties.length && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
               <div className="text-sm text-gray-500">
-                Showing page {page} of {totalPages} ({totalProperties} total properties)
+                Showing {properties.length} of {totalProperties} properties
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={loadAllProperties}
+                  disabled={loadingMore}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-primary-500/30"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      Show All {totalProperties} Properties
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!showAll && totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200">
+              <div className="text-sm text-gray-500">
+                Page {page} of {totalPages} ({totalProperties} total)
               </div>
               <div className="flex items-center gap-2">
                 <button 
@@ -468,6 +561,23 @@ export default function PropertyList() {
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Show Less button when showing all */}
+          {showAll && (
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={() => {
+                  setShowAll(false);
+                  setAllPropertiesLoaded(false);
+                  load(1, applied);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2"
+              >
+                <ChevronUp className="w-4 h-4" />
+                Show Less
+              </button>
             </div>
           )}
         </>
