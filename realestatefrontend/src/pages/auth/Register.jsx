@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import axios from "axios";
@@ -20,20 +20,13 @@ export default function Register() {
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [showOTP, setShowOTP] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-
-  const [countdown, setCountdown] = useState(30);
-  const [canResend, setCanResend] = useState(false);
 
   const {
     register,
     handleSubmit,
     getValues,
-    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -41,50 +34,14 @@ export default function Register() {
     },
   });
 
-  const email = watch("email");
-
-  useEffect(() => {
-    let timer;
-    if (showOTP && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
-    }
-    if (countdown === 0) {
-      setCanResend(true);
-    }
-    return () => clearInterval(timer);
-  }, [countdown, showOTP]);
-
-  // ─── Send OTP ──────────────────────────────────────────────────────
-  const sendOTP = async () => {
-    const data = getValues();
-    if (!data.email) {
-      toast.error("Please enter your email first.");
-      return;
-    }
-    try {
-      setOtpLoading(true);
-      const res = await axios.post(`${API}/send-otp`, { email: data.email });
-      toast.success(res.data.message || "📧 OTP sent successfully!");
-      setShowOTP(true);
-      setOtpSent(true);
-      setCountdown(30);
-      setCanResend(false);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Unable to send OTP");
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  // ─── Verify OTP & Register ────────────────────────────────────────
   const onSubmit = async (data) => {
     try {
       setLoading(true);
-      const res = await axios.post(`${API}/verify-otp`, data);
+      const res = await axios.post(`${API}/register`, data);
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("re_token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("re_user", JSON.stringify(res.data.user));
       toast.success("🎉 Registration Successful! Welcome to PropEstate.");
       navigate("/dashboard");
     } catch (err) {
@@ -111,7 +68,9 @@ export default function Register() {
       });
       
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("re_token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("re_user", JSON.stringify(res.data.user));
       
       toast.success("🎉 Google Registration Successful! Welcome to PropEstate.");
       navigate("/dashboard");
@@ -320,47 +279,30 @@ export default function Register() {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Email Address <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
-                    focusedField === 'email' ? 'text-primary-600' : 'text-gray-400'
-                  }`} />
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
-                      errors.email
-                        ? 'border-red-400 focus:ring-4 focus:ring-red-200'
-                        : focusedField === 'email'
-                        ? 'border-primary-500 ring-4 ring-primary-100'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    {...register("email", { 
-                      required: "Email is required",
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address"
-                      }
-                    })}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={sendOTP}
-                  disabled={otpLoading || !email}
-                  className="px-4 h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl transition-all shadow-lg shadow-primary-500/30 hover:shadow-xl disabled:opacity-60 flex items-center justify-center gap-2 whitespace-nowrap"
-                >
-                  {otpLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Mail className="w-4 h-4" />
-                      <span className="text-sm hidden sm:inline">Send OTP</span>
-                    </>
-                  )}
-                </button>
+              <div className="relative">
+                <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
+                  focusedField === 'email' ? 'text-primary-600' : 'text-gray-400'
+                }`} />
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 ${
+                    errors.email
+                      ? 'border-red-400 focus:ring-4 focus:ring-red-200'
+                      : focusedField === 'email'
+                      ? 'border-primary-500 ring-4 ring-primary-100'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  {...register("email", { 
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Invalid email address"
+                    }
+                  })}
+                />
               </div>
               {errors.email && (
                 <motion.p
@@ -369,16 +311,6 @@ export default function Register() {
                   className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
                 >
                   <AlertCircle className="w-3 h-3" /> {errors.email.message}
-                </motion.p>
-              )}
-              {otpSent && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-emerald-600 text-xs mt-1.5 flex items-center gap-1"
-                >
-                  <CheckCircle className="w-3 h-3" />
-                  OTP sent to your email
                 </motion.p>
               )}
             </div>
@@ -498,82 +430,10 @@ export default function Register() {
               )}
             </div>
 
-            {/* ─── OTP Section ─────────────────────────────────────────── */}
-            {showOTP && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                transition={{ duration: 0.3 }}
-                className="space-y-3"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Email OTP <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <ShieldCheck className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${
-                      focusedField === 'otp' ? 'text-primary-600' : 'text-gray-400'
-                    }`} />
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="000000"
-                      onFocus={() => setFocusedField('otp')}
-                      onBlur={() => setFocusedField(null)}
-                      className={`w-full h-12 pl-12 pr-4 rounded-xl bg-gray-50 border transition-all outline-none text-gray-900 placeholder:text-gray-400 text-center tracking-[8px] text-lg font-bold ${
-                        errors.otp
-                          ? 'border-red-400 focus:ring-4 focus:ring-red-200'
-                          : focusedField === 'otp'
-                          ? 'border-primary-500 ring-4 ring-primary-100'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      {...register("otp", {
-                        required: "OTP is required",
-                        minLength: {
-                          value: 6,
-                          message: "OTP must be 6 digits",
-                        },
-                      })}
-                    />
-                  </div>
-                  {errors.otp && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-red-500 text-xs mt-1.5 flex items-center gap-1"
-                    >
-                      <AlertCircle className="w-3 h-3" /> {errors.otp.message}
-                    </motion.p>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center text-sm">
-                  {!canResend ? (
-                    <span className="text-gray-500 flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-primary-500" />
-                      Resend in {countdown}s
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={sendOTP}
-                      className="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 hover:underline"
-                    >
-                      <Mail className="w-4 h-4" /> Resend OTP
-                    </button>
-                  )}
-                  <span className="flex items-center gap-1 text-emerald-600 font-medium text-xs">
-                    <CheckCircle className="w-4 h-4" />
-                    OTP Sent
-                  </span>
-                </div>
-              </motion.div>
-            )}
-
             {/* ─── Register Button ────────────────────────────────────── */}
             <motion.button
               type="submit"
-              disabled={!showOTP || loading}
+              disabled={loading}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -586,7 +446,7 @@ export default function Register() {
               ) : (
                 <>
                   <UserPlus className="w-4 h-4" />
-                  {showOTP ? "Verify OTP & Create Account" : "Create Account"}
+                  Create Account
                 </>
               )}
             </motion.button>

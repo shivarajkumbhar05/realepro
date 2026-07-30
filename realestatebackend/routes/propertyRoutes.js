@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, optionalAuth, authorize } = require('../middleware/auth');
+const { uploadPropertyFiles } = require('../middleware/upload');
 
 // Import all controller functions
 const {
@@ -86,8 +87,8 @@ router.post('/:id/reviews', addPropertyReview);
 router.delete('/:id/reviews/:reviewId', deleteReview);
 
 // ─── Property CRUD ──────────────────────────────────────────────────
-router.post('/', createProperty);
-router.put('/:id', updateProperty);
+router.post('/', uploadPropertyFiles, createProperty);
+router.put('/:id', uploadPropertyFiles, updateProperty);
 router.delete('/:id', deleteProperty);
 
 // ─── Admin Routes ──────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getProperties, deleteProperty } from '../../api/properties';
+import { getPropertiesByAgent, deleteProperty } from '../../api/properties';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Building2, Plus, Edit, Trash2, Eye, MapPin, 
@@ -23,18 +23,27 @@ export default function MyListings() {
   const [viewMode, setViewMode] = useState('grid');
 
   const load = async () => {
+    const currentUserId = user?.id || user?._id || user?.userId;
+    if (!currentUserId) {
+      setProperties([]);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data } = await getProperties({ limit: 50 });
-      const mine = (data.data || []).filter(p => {
-        const agentId = typeof p.agent === 'object' ? p.agent?._id : p.agent;
-        return agentId === user?.id;
-      });
+      setLoading(true);
+      const response = await getPropertiesByAgent(currentUserId);
+      const mine = Array.isArray(response?.data) ? response.data : response?.data?.data || [];
       setProperties(mine);
-    } catch {}
-    setLoading(false);
+    } catch (err) {
+      console.error('Failed to load listings:', err);
+      setProperties([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user?.id, user?._id]);
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this property?')) return;

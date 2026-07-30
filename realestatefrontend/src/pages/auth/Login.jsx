@@ -86,7 +86,7 @@ export default function Login() {
       toast.success(data.message);
       navigate("/forgot-password", { state: { email } });
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to send OTP");
+      toast.error(error.response?.data?.message || "Unable to send reset instructions");
     }
   };
 
@@ -104,7 +104,9 @@ export default function Login() {
       });
       
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("re_token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("re_user", JSON.stringify(res.data.user));
       
       toast.success("🎉 Google Login Successful! Welcome back.");
       navigate("/dashboard");

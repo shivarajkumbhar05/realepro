@@ -87,4 +87,14 @@ const uploadAvatar = multer({
   limits: { fileSize: 2 * 1024 * 1024, files: 1 }, // 2MB
 });
 
-module.exports = { uploadImages, uploadDocuments, uploadAvatar };
+const uploadPropertyFiles = (req, res, next) => {
+  const imageMiddleware = uploadImages.fields([{ name: 'images', maxCount: 10 }]);
+  const documentMiddleware = uploadDocuments.fields([{ name: 'documents', maxCount: 5 }]);
+
+  imageMiddleware(req, res, (imageErr) => {
+    if (imageErr) return next(imageErr);
+    documentMiddleware(req, res, next);
+  });
+};
+
+module.exports = { uploadImages, uploadDocuments, uploadAvatar, uploadPropertyFiles };

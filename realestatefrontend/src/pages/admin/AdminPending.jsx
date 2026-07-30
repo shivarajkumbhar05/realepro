@@ -53,19 +53,22 @@ export default function AdminPending() {
 
   // ─── Filter Properties ──────────────────────────────────────────────
   const filteredProperties = properties.filter(p => {
-    const matchesSearch = p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.location?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.agent?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || p.propertyType === filterType;
+    const normalizedSearch = searchTerm.toLowerCase();
+    const propertyType = p.type || p.propertyType;
+    const matchesSearch = !normalizedSearch ||
+      p.title?.toLowerCase().includes(normalizedSearch) ||
+      p.location?.city?.toLowerCase().includes(normalizedSearch) ||
+      p.agent?.name?.toLowerCase().includes(normalizedSearch);
+    const matchesType = filterType === 'all' || propertyType === filterType;
     return matchesSearch && matchesType;
   });
 
   // ─── Stats ────────────────────────────────────────────────────────────
   const stats = {
     total: properties.length,
-    apartments: properties.filter(p => p.propertyType === 'apartment').length,
-    houses: properties.filter(p => p.propertyType === 'house').length,
-    villas: properties.filter(p => p.propertyType === 'villa').length,
+    apartments: properties.filter(p => (p.type || p.propertyType) === 'apartment').length,
+    houses: properties.filter(p => (p.type || p.propertyType) === 'house').length,
+    villas: properties.filter(p => (p.type || p.propertyType) === 'villa').length,
   };
 
   if (loading) return (

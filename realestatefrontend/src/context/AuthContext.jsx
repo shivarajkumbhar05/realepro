@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem("re_user");
+    const storedUser = localStorage.getItem("re_user") || localStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : null;
   });
 
@@ -17,7 +17,9 @@ export function AuthProvider({ children }) {
     const { data } = await authApi.login(credentials);
 
     localStorage.setItem("re_token", data.token);
+    localStorage.setItem("token", data.token);
     localStorage.setItem("re_user", JSON.stringify(data.user));
+    localStorage.setItem("user", JSON.stringify(data.user));
 
     setUser(data.user);
 
@@ -31,7 +33,9 @@ export function AuthProvider({ children }) {
     const { data } = await authApi.register(payload);
 
     localStorage.setItem("re_token", data.token);
+    localStorage.setItem("token", data.token);
     localStorage.setItem("re_user", JSON.stringify(data.user));
+    localStorage.setItem("user", JSON.stringify(data.user));
 
     setUser(data.user);
 
@@ -46,7 +50,9 @@ export function AuthProvider({ children }) {
     } catch (err) {}
 
     localStorage.removeItem("re_token");
+    localStorage.removeItem("token");
     localStorage.removeItem("re_user");
+    localStorage.removeItem("user");
 
     setUser(null);
   }, []);
@@ -66,6 +72,10 @@ export function AuthProvider({ children }) {
 
       localStorage.setItem(
         "re_user",
+        JSON.stringify(data.data)
+      );
+      localStorage.setItem(
+        "user",
         JSON.stringify(data.data)
       );
 

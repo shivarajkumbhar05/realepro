@@ -7,6 +7,7 @@ const {
   getMe,
   updateProfile,
   changePassword,
+  forgotPassword,
   resetPassword,
   logout,
   googleRegister,
@@ -33,6 +34,11 @@ router.post("/login", login);
 // @desc   Register/Login with Google
 // @access Public
 router.post("/google-register", googleRegister);
+
+// @route  POST /api/auth/forgot-password
+// @desc   Initiate password reset flow
+// @access Public
+router.post("/forgot-password", forgotPassword);
 
 // @route  POST /api/auth/reset-password
 // @desc   Reset password

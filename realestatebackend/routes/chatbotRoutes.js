@@ -9,6 +9,7 @@ const {
 
 // Public routes
 router.post('/chat', chat);
+router.post('/message', chat);
 router.get('/suggestions', getSuggestions);
 
 // Protected routes

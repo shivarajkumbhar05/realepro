@@ -1,10 +1,13 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
+const jwtSecret = process.env.JWT_SECRET || 'realpro-dev-secret-change-me';
+const jwtExpire = process.env.JWT_EXPIRE || '7d';
+
 // ─── Helper: generate JWT ─────────────────────────────────────────────────────
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d',
+  return jwt.sign({ id }, jwtSecret, {
+    expiresIn: jwtExpire,
   });
 };
 
@@ -33,12 +36,12 @@ exports.register = async (req, res) => {
     const allowedRoles = ['buyer', 'agent'];
     const assignedRole = allowedRoles.includes(role) ? role : 'buyer';
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'Email already registered.' });
     }
 
-    const user = await User.create({ name, email, password, role: assignedRole, phone });
+    const user = await User.create({ name, email: email.toLowerCase(), password, role: assignedRole, phone });
     sendTokenResponse(user, 201, res, 'Registered successfully');
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -54,7 +57,7 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide email and password.' });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
@@ -120,6 +123,25 @@ exports.changePassword = async (req, res) => {
 };
 
 // ─── @route  POST /api/auth/reset-password ───────────────────────────────────
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with that email.' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Password reset instructions will be sent if email delivery is configured.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 exports.resetPassword = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -128,7 +150,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and new password are required.' });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (!user) {
       return res.status(404).json({ success: false, message: 'No account found with that email.' });
     }
@@ -145,9 +167,14 @@ exports.resetPassword = async (req, res) => {
 // ─── @route  POST /api/auth/google-register ──────────────────────────────────
 exports.googleRegister = async (req, res) => {
   try {
-    const { idToken, userData } = req.body;
+    const { idToken, userData, email: directEmail, name: directName, avatar: directAvatar, googleId: directGoogleId, role: directRole } = req.body;
     
-    const { email, displayName, photoURL, uid } = userData || {};
+    const userPayload = userData || {};
+    const email = directEmail || userPayload.email;
+    const displayName = directName || userPayload.displayName || userPayload.name;
+    const photoURL = directAvatar || userPayload.photoURL || userPayload.avatar;
+    const uid = directGoogleId || userPayload.uid || userPayload.googleId;
+    const role = directRole || userPayload.role || 'buyer';
     
     if (!email) {
       return res.status(400).json({ 
@@ -163,9 +190,9 @@ exports.googleRegister = async (req, res) => {
       
       user = await User.create({
         name: displayName || email.split('@')[0],
-        email: email,
+        email: email.toLowerCase(),
         password: randomPassword,
-        role: 'buyer',
+        role: role === 'agent' ? 'agent' : 'buyer',
         googleId: uid,
         isVerified: true,
         isActive: true,

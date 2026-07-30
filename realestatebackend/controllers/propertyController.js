@@ -14,6 +14,93 @@ try {
 // 📦 CRUD OPERATIONS
 // ================================================================
 
+const normalizePropertyPayload = (body = {}) => {
+  const normalized = { ...body };
+
+  if (body.type || body.propertyType) {
+    const propertyType = body.type || body.propertyType;
+    normalized.type = propertyType;
+    normalized.propertyType = propertyType;
+  }
+
+  if (body.address || body.city || body.state || body.pincode || body.lat !== undefined || body.lng !== undefined) {
+    normalized.location = {
+      address: body.address || '',
+      city: body.city || '',
+      state: body.state || '',
+      pincode: body.pincode || '',
+      lat: body.lat !== undefined && body.lat !== '' ? Number(body.lat) : undefined,
+      lng: body.lng !== undefined && body.lng !== '' ? Number(body.lng) : undefined,
+    };
+  }
+
+  if (body.price !== undefined && body.price !== '') {
+    normalized.price = Number(body.price);
+  }
+
+  if (body.area !== undefined && body.area !== '') {
+    normalized.area = Number(body.area);
+  }
+
+  if (body.bedrooms !== undefined && body.bedrooms !== '') {
+    normalized.bedrooms = Number(body.bedrooms);
+  }
+
+  if (body.bathrooms !== undefined && body.bathrooms !== '') {
+    normalized.bathrooms = Number(body.bathrooms);
+  }
+
+  if (body.floors !== undefined && body.floors !== '') {
+    normalized.floors = Number(body.floors);
+  }
+
+  if (body.parking !== undefined) {
+    normalized.parking = body.parking === true || body.parking === 'true' || body.parking === 'on';
+  }
+
+  if (body.amenities) {
+    if (Array.isArray(body.amenities)) {
+      normalized.amenities = body.amenities.filter(Boolean);
+    } else if (typeof body.amenities === 'string') {
+      normalized.amenities = body.amenities.split(',').map((item) => item.trim()).filter(Boolean);
+    }
+  }
+
+  return normalized;
+};
+
+const buildImagePayload = (files = []) =>
+  (files || []).map((file) => ({
+    filename: file.filename || file.key,
+    path: `/uploads/properties/${file.filename || file.key}`,
+    originalName: file.originalname || file.filename,
+    caption: '',
+    isCover: false,
+  }));
+
+const buildDocumentPayload = (files = []) =>
+  (files || []).map((file) => ({
+    filename: file.filename || file.key,
+    path: `/uploads/documents/${file.filename || file.key}`,
+    originalName: file.originalname || file.filename,
+    docType: 'other',
+    verificationStatus: 'unverified',
+    verificationScore: null,
+    verificationNotes: [],
+    verifiedAt: null,
+  }));
+
+const serializeProperty = (property) => {
+  if (!property) return property;
+
+  const data = property.toObject ? property.toObject() : property;
+  return {
+    ...data,
+    propertyType: data.propertyType || data.type,
+    type: data.type || data.propertyType,
+  };
+};
+
 // ─── GET PUBLIC STATS ──────────────────────────────────────────────────
 const getPublicStats = async (req, res) => {
   try {
@@ -86,7 +173,7 @@ const getProperties = async (req, res) => {
 
     res.json({
       success: true,
-      data: properties,
+      data: properties.map(serializeProperty),
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -114,7 +201,7 @@ const getProperty = async (req, res) => {
     property.views = (property.views || 0) + 1;
     await property.save();
 
-    res.json({ success: true, data: property });
+    res.json({ success: true, data: serializeProperty(property) });
   } catch (error) {
     console.error('Error in getProperty:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -124,18 +211,22 @@ const getProperty = async (req, res) => {
 // ─── CREATE PROPERTY ──────────────────────────────────────────────────
 const createProperty = async (req, res) => {
   try {
-    const propertyData = {
-      ...req.body,
+    const propertyData = normalizePropertyPayload(req.body);
+    const images = buildImagePayload(req.files?.images || []);
+    const documents = buildDocumentPayload(req.files?.documents || []);
+
+    const property = new Property({
+      ...propertyData,
       agent: req.user._id,
       isApproved: req.user.role === 'admin' ? true : false,
-    };
-    
-    const property = new Property(propertyData);
+      images: images.length > 0 ? images : propertyData.images || [],
+      documents: documents.length > 0 ? documents : propertyData.documents || [],
+    });
     await property.save();
 
     res.status(201).json({
       success: true,
-      data: property,
+      data: serializeProperty(property),
       message: 'Property created successfully'
     });
   } catch (error) {
@@ -156,13 +247,21 @@ const updateProperty = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    const payload = normalizePropertyPayload(req.body);
+    if (req.files?.images?.length) {
+      payload.images = [...(property.images || []), ...buildImagePayload(req.files.images)];
+    }
+    if (req.files?.documents?.length) {
+      payload.documents = [...(property.documents || []), ...buildDocumentPayload(req.files.documents)];
+    }
+
     const updated = await Property.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      payload,
       { new: true, runValidators: true }
     );
 
-    res.json({ success: true, data: updated, message: 'Property updated successfully' });
+    res.json({ success: true, data: serializeProperty(updated), message: 'Property updated successfully' });
   } catch (error) {
     console.error('Error in updateProperty:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -219,7 +318,7 @@ const searchProperties = async (req, res) => {
       .limit(50)
       .sort({ createdAt: -1 });
 
-    res.json({ success: true, data: properties, count: properties.length });
+    res.json({ success: true, data: properties.map(serializeProperty), count: properties.length });
   } catch (error) {
     console.error('Error in searchProperties:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -234,7 +333,7 @@ const getPropertiesByAgent = async (req, res) => {
       isApproved: true 
     }).populate('agent', 'name email phone');
 
-    res.json({ success: true, data: properties });
+    res.json({ success: true, data: properties.map(serializeProperty) });
   } catch (error) {
     console.error('Error in getPropertiesByAgent:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -258,7 +357,7 @@ const getSimilarProperties = async (req, res) => {
     .limit(parseInt(req.query.limit) || 4)
     .populate('agent', 'name email phone');
 
-    res.json({ success: true, data: similar });
+    res.json({ success: true, data: similar.map(serializeProperty) });
   } catch (error) {
     console.error('Error in getSimilarProperties:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -474,7 +573,7 @@ const getAdminProperties = async (req, res) => {
 
     res.json({
       success: true,
-      data: properties,
+      data: properties.map(serializeProperty),
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -494,7 +593,7 @@ const getPendingProperties = async (req, res) => {
       .populate('agent', 'name email phone')
       .sort({ createdAt: -1 });
 
-    res.json({ success: true, data: properties });
+    res.json({ success: true, data: properties.map(serializeProperty) });
   } catch (error) {
     console.error('Error in getPendingProperties:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -513,7 +612,7 @@ const approveProperty = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
-    res.json({ success: true, data: property, message: 'Property approved successfully' });
+    res.json({ success: true, data: serializeProperty(property), message: 'Property approved successfully' });
   } catch (error) {
     console.error('Error in approveProperty:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -533,7 +632,7 @@ const rejectProperty = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
-    res.json({ success: true, data: property, message: 'Property rejected' });
+    res.json({ success: true, data: serializeProperty(property), message: 'Property rejected' });
   } catch (error) {
     console.error('Error in rejectProperty:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -1050,7 +1149,7 @@ const getRecentlyViewed = async (req, res) => {
       .sort({ views: -1 })
       .limit(10)
       .populate('agent', 'name email phone');
-    res.json({ success: true, data: properties });
+    res.json({ success: true, data: properties.map(serializeProperty) });
   } catch (error) {
     console.error('Error in getRecentlyViewed:', error);
     res.status(500).json({ success: false, message: error.message });

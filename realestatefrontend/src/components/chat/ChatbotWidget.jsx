@@ -170,8 +170,9 @@ export default function ChatbotWidget() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const suggestions = SUGGESTIONS_BY_ROLE[user?.role] || SUGGESTIONS_BY_ROLE.buyer;
-  const welcomeText = `Hi! I'm the PropEstate Assistant 🤖 I can help you find properties, answer questions about buying, selling, or renting, and guide you through the process. How can I assist you today?`;
+  const role = user?.role || 'buyer';
+  const suggestions = SUGGESTIONS_BY_ROLE[role] || SUGGESTIONS_BY_ROLE.buyer;
+  const welcomeText = `Hi! I'm the PropEstate Assistant 🤖 I can help you find properties, answer role-based questions, and guide you through approvals, listings, and support. How can I assist you today?`;
   
   const [messages, setMessages] = useState([
     { role: 'bot', text: welcomeText, properties: [], timestamp: new Date() },
@@ -207,12 +208,14 @@ export default function ChatbotWidget() {
       // Simulate typing delay for better UX
       await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
       
-      const { data } = await sendChatMessage(trimmed);
+      const { data } = await sendChatMessage(trimmed, role);
       setIsTyping(false);
-      setMessages((m) => [...m, { 
-        role: 'bot', 
-        text: data.data.text, 
-        properties: data.data.properties,
+      const payload = data?.data || {};
+      setMessages((m) => [...m, {
+        role: 'bot',
+        text: payload.text || payload.message || "I’m here to help. Try asking about listings, approvals, or documents.",
+        properties: payload.properties || [],
+        suggestions: payload.suggestions || [],
         timestamp: new Date()
       }]);
     } catch {
@@ -327,12 +330,25 @@ export default function ChatbotWidget() {
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
             {messages.map((m, i) => (
-              <div key={i} className="space-y-1">
+              <div key={i} className="space-y-2">
                 <ChatMessage message={m.text} isUser={m.role === 'user'} />
                 {m.properties?.length > 0 && (
                   <div className="ml-11 space-y-1.5">
                     {m.properties.map((p) => (
                       <PropertyMiniCard key={p.id} p={p} />
+                    ))}
+                  </div>
+                )}
+                {m.suggestions?.length > 0 && m.role === 'bot' && (
+                  <div className="ml-11 flex flex-wrap gap-2">
+                    {m.suggestions.slice(0,3).map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => send(item)}
+                        className="rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-[11px] text-primary-700 hover:bg-primary-100 transition-colors"
+                      >
+                        {item}
+                      </button>
                     ))}
                   </div>
                 )}

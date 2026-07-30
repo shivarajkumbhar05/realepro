@@ -1,46 +1,57 @@
 // ─── @route  POST /api/chatbot/chat ─────────────────────────────────────────
 exports.chat = async (req, res) => {
   try {
-    const { message } = req.body;
-    
+    const { message, role = 'buyer' } = req.body;
+
     if (!message) {
       return res.status(400).json({
         success: false,
         message: 'Message is required'
       });
     }
-    
-    const responses = {
-      'hello': 'Hello! How can I help you today?',
-      'hi': 'Hi there! Welcome to our real estate platform.',
-      'properties': 'You can browse our properties on the properties page.',
-      'price': 'Our properties range from $100,000 to $5,000,000+.',
-      'contact': 'You can contact us through the contact form.',
-      'default': 'Thank you for your message. Our team will get back to you soon.'
-    };
-    
+
     const lowerMessage = message.toLowerCase();
-    let reply = responses.default;
-    
-    for (const [key, value] of Object.entries(responses)) {
-      if (lowerMessage.includes(key)) {
-        reply = value;
-        break;
-      }
+    const roleLabel = role === 'admin' ? 'admin' : role === 'agent' ? 'agent' : 'buyer';
+
+    let reply = 'Thanks for reaching out. I can help with listings, approvals, documents, and property guidance.';
+    let suggestions = [];
+
+    if (lowerMessage.includes('approve') || lowerMessage.includes('pending')) {
+      reply = 'For admin review, open the pending approvals queue, review the listing details, and approve or reject the property before it goes live.';
+      suggestions = ['Review pending listings', 'Check user management', 'See approval workflow'];
+    } else if (lowerMessage.includes('document') || lowerMessage.includes('verify')) {
+      reply = 'Document verification helps confirm title deeds, NOC files, and plans before a listing is approved.';
+      suggestions = ['View verification checklist', 'Inspect uploaded documents', 'Learn about admin review'];
+    } else if (lowerMessage.includes('property') || lowerMessage.includes('listing')) {
+      reply = 'You can browse approved listings, add a new property, or review pending submissions depending on your role.';
+      suggestions = ['Show me available listings', 'How do I add a property?', 'How does approval work?'];
+    } else if (lowerMessage.includes('price') || lowerMessage.includes('budget')) {
+      reply = 'Pricing depends on location, size, property type, and market demand. Filters can help narrow results quickly.';
+      suggestions = ['Browse budget-friendly homes', 'Compare popular areas', 'Find premium listings'];
+    } else if (lowerMessage.includes('contact') || lowerMessage.includes('support')) {
+      reply = 'You can contact the support team through the contact page or continue using this assistant for quick guidance.';
+      suggestions = ['Open contact page', 'View FAQ', 'Talk to support'];
+    } else if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+      reply = `Hello! I can help you with property search, listings, documents, and ${roleLabel === 'admin' ? 'admin approval workflows' : 'next-step guidance'}.`;
+      suggestions = ['Show me available listings', roleLabel === 'admin' ? 'Review pending approvals' : 'How do I get started'];
     }
-    
+
     res.status(200).json({
       success: true,
       data: {
+        text: reply,
         message: reply,
+        role: roleLabel,
+        suggestions,
+        properties: [],
         timestamp: new Date()
       }
     });
   } catch (error) {
     console.error('Chat error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
+    res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 };

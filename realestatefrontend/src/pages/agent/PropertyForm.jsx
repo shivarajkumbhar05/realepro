@@ -36,8 +36,8 @@ export default function PropertyForm() {
 
   useEffect(() => {
     if (isEdit) {
-      getProperty(id).then(({ data }) => {
-        const p = data.data;
+      getProperty(id).then((res) => {
+        const p = res?.data;
         reset({
           title: p.title,
           description: p.description,
@@ -78,9 +78,9 @@ export default function PropertyForm() {
         toast.success('Property updated!');
         navigate(`/properties/${id}`);
       } else {
-        const { data: res } = await createProperty(fd);
+        const res = await createProperty(fd);
         toast.success('Property created! Awaiting admin approval.');
-        navigate(`/properties/${res.data._id}`);
+        navigate(`/properties/${res?.data?._id}`);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save');

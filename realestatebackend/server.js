@@ -2,13 +2,46 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
+const net = require('net');
 const connectDB = require('./config/db');
+const User = require('./models/User');
 
 // Load env vars
 dotenv.config();
 
-// Connect to MongoDB
-connectDB();
+const ensureDefaultAdmin = async () => {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL?.trim();
+    const adminPassword = process.env.ADMIN_PASSWORD?.trim();
+
+    if (!adminEmail || !adminPassword) {
+      return;
+    }
+
+    const existingAdmin = await User.findOne({ email: adminEmail.toLowerCase() });
+    if (existingAdmin) {
+      if (existingAdmin.role !== 'admin') {
+        existingAdmin.role = 'admin';
+        await existingAdmin.save();
+      }
+      return;
+    }
+
+    await User.create({
+      name: 'System Admin',
+      email: adminEmail.toLowerCase(),
+      password: adminPassword,
+      role: 'admin',
+      phone: '0000000000',
+      isVerified: true,
+      isActive: true,
+    });
+
+    console.log(`✅ Default admin created for ${adminEmail}`);
+  } catch (error) {
+    console.error('⚠️ Could not ensure default admin:', error.message);
+  }
+};
 
 const app = express();
 
@@ -137,10 +170,32 @@ app.use((err, req, res, next) => {
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ All routes loaded successfully`);
-});
+
+const startServer = async () => {
+  try {
+    await connectDB();
+    await ensureDefaultAdmin();
+
+    const server = app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ All routes loaded successfully`);
+    });
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`⚠️ Port ${PORT} is already in use. Please stop the other process and try again.`);
+      } else {
+        console.error('❌ Server error:', error.message);
+      }
+      process.exit(1);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 module.exports = app;
