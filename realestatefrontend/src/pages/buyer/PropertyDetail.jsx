@@ -450,27 +450,61 @@ export default function PropertyDetail() {
           </div>
         )}
 
-        {/* Agent Info */}
+        {/* Contact Card */}
         {agent && (
-          <div className="mt-6 bg-white rounded-2xl p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-primary-600" />
-              Property Agent
-            </h3>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+          <div className="mt-6 bg-gradient-to-br from-slate-900 via-primary-700 to-primary-600 rounded-2xl p-6 text-white shadow-lg">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-wide text-primary-100">Property Contact</p>
+                <h3 className="text-xl font-semibold mt-1">Talk to the agent</h3>
+              </div>
+              <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-xl font-bold">
                 {agent?.name?.[0]?.toUpperCase() || 'A'}
               </div>
+            </div>
+
+            <div className="mt-5 space-y-3">
               <div>
-                <p className="font-semibold text-gray-900">{agent?.name || 'Property Agent'}</p>
-                <p className="text-sm text-gray-500">{agent?.role || 'Real Estate Agent'}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <a href={`mailto:${agent?.email}`} className="text-sm text-primary-600 hover:text-primary-700">
-                    <Mail className="w-4 h-4 inline mr-1" />
-                    {agent?.email}
-                  </a>
-                </div>
+                <p className="font-semibold text-lg">{agent?.name || 'Property Agent'}</p>
+                <p className="text-sm text-primary-100">{agent?.role || 'Real Estate Agent'}</p>
               </div>
+
+              <div className="space-y-2 text-sm">
+                {agent?.email && (
+                  <a href={`mailto:${agent.email}`} className="flex items-center gap-2 text-primary-50 hover:text-white transition-colors">
+                    <Mail className="w-4 h-4" />
+                    {agent.email}
+                  </a>
+                )}
+                {agent?.phone && (
+                  <a href={`tel:${agent.phone}`} className="flex items-center gap-2 text-primary-50 hover:text-white transition-colors">
+                    <Phone className="w-4 h-4" />
+                    {agent.phone}
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              {agent?.phone && (
+                <a href={`tel:${agent.phone}`} className="inline-flex items-center gap-2 bg-white text-primary-700 px-4 py-2 rounded-xl font-medium hover:bg-primary-50 transition-colors">
+                  <Phone className="w-4 h-4" />
+                  Call now
+                </a>
+              )}
+              {agent?.email && (
+                <a href={`mailto:${agent.email}?subject=${encodeURIComponent(`Interested in ${title}`)}`} className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-medium hover:bg-white/20 transition-colors">
+                  <Mail className="w-4 h-4" />
+                  Email agent
+                </a>
+              )}
+              <button
+                onClick={() => toast.success('Agent contact details are available above.')}
+                className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl font-medium hover:bg-white/20 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Request info
+              </button>
             </div>
           </div>
         )}
@@ -487,22 +521,6 @@ export default function PropertyDetail() {
           </div>
         </div>
 
-        {/* Debug Info - Remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-8 p-4 bg-gray-100 rounded-lg border border-gray-200">
-            <p className="text-sm font-mono text-gray-600">
-              <strong>Debug Info</strong>
-            </p>
-            <details className="mt-2">
-              <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
-                Click to view property data
-              </summary>
-              <pre className="mt-2 text-xs text-gray-600 overflow-auto max-h-60 p-2 bg-white rounded">
-                {JSON.stringify(property, null, 2)}
-              </pre>
-            </details>
-          </div>
-        )}
       </div>
     </div>
   );
