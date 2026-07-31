@@ -138,7 +138,7 @@ const getPublicStats = async (req, res) => {
 // ─── GET ALL PROPERTIES ────────────────────────────────────────────────
 const getProperties = async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc', city, type, status, minPrice, maxPrice, search } = req.query;
+    const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc', city, type, status, minPrice, maxPrice, search, bedrooms } = req.query;
     
     const query = { isApproved: true };
     
@@ -153,6 +153,12 @@ const getProperties = async (req, res) => {
     if (city) query['location.city'] = { $regex: city, $options: 'i' };
     if (type) query.propertyType = type;
     if (status) query.status = status;
+    if (bedrooms) {
+      const parsedBedrooms = parseInt(bedrooms);
+      if (!Number.isNaN(parsedBedrooms)) {
+        query.bedrooms = { $gte: parsedBedrooms };
+      }
+    }
     
     if (minPrice || maxPrice) {
       query.price = {};

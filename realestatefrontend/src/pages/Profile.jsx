@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Sparkles, Save,
   Key, LogOut, UserCheck, Award, Star,
   Building2, Calendar, Clock, ArrowRight,
-  Eye, EyeOff, // ✅ Removed Github, Twitter, Linkedin, Globe, Heart
+  Eye, EyeOff, Bell, Moon, SlidersHorizontal,
   // ✅ These are the correct icons available in lucide-react
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -29,6 +29,12 @@ export default function Profile() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [memberSince, setMemberSince] = useState('');
+  const [preferences, setPreferences] = useState({
+    emailAlerts: true,
+    smsUpdates: false,
+    darkMode: false,
+    mapDefault: true,
+  });
 
   const { register: regProfile, handleSubmit: handleProfile, formState: { errors: profileErrors } } = useForm({
     defaultValues: { name: user?.name || '', phone: user?.phone || '' }
@@ -89,6 +95,10 @@ export default function Profile() {
   };
 
   const avatarSrc = avatarPreview || (user?.avatar ? `${BASE}${user.avatar}` : null);
+
+  const togglePreference = (key) => {
+    setPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // ─── Stats ────────────────────────────────────────────────────────────
   const stats = [
@@ -265,6 +275,7 @@ export default function Profile() {
               { id: 'profile', label: 'Profile Info', icon: User },
               { id: 'password', label: 'Change Password', icon: Lock },
               { id: 'security', label: 'Security', icon: Shield },
+              { id: 'settings', label: 'Settings', icon: SlidersHorizontal },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -573,6 +584,57 @@ export default function Profile() {
                       Delete
                     </button>
                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'settings' && (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-5"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                    <SlidersHorizontal className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Preferences</h3>
+                    <p className="text-xs text-gray-400">Personalize how you browse and receive updates</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  {[
+                    { key: 'emailAlerts', title: 'Email alerts', description: 'Get updates on matching properties and offers', icon: Bell, activeColor: 'bg-primary-100 text-primary-600' },
+                    { key: 'smsUpdates', title: 'SMS updates', description: 'Receive quick updates for important changes', icon: Shield, activeColor: 'bg-amber-100 text-amber-600' },
+                    { key: 'darkMode', title: 'Dark mode', description: 'Use a darker interface for late-night browsing', icon: Moon, activeColor: 'bg-slate-100 text-slate-700' },
+                    { key: 'mapDefault', title: 'Map view by default', description: 'Open property browsing in map mode first', icon: Building2, activeColor: 'bg-emerald-100 text-emerald-600' },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    const enabled = preferences[item.key];
+                    return (
+                      <div key={item.key} className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl ${enabled ? item.activeColor : 'bg-white text-gray-500'} flex items-center justify-center`}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{item.title}</p>
+                            <p className="text-xs text-gray-500">{item.description}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => togglePreference(item.key)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-primary-600' : 'bg-gray-300'}`}
+                        >
+                          <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}

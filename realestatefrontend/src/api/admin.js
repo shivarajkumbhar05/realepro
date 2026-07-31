@@ -7,3 +7,4 @@ export const createUser = (data) => api.post('/admin/users', data);
 export const updateUser = (id, data) => api.put(`/admin/users/${id}`, data);
 export const deleteUser = (id) => api.delete(`/admin/users/${id}`);
 export const getPendingProperties = () => api.get('/admin/pending-properties');
+export const getAnalytics = () => api.get('/admin/analytics');

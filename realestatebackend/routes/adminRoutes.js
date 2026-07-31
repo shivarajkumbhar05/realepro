@@ -8,6 +8,7 @@ const {
   getPendingProperties,
   createUser,
   getUserDetail,
+  getAnalytics,
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -17,6 +18,7 @@ router.use(authorize('admin'));
 
 // Dashboard
 router.get('/dashboard', getDashboard);
+router.get('/analytics', getAnalytics);
 
 // User Management
 router.get('/users', getAllUsers);

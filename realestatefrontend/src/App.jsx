@@ -28,6 +28,7 @@ import MyListings from './pages/agent/MyListings';
 // Admin Pages
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminPending from './pages/admin/AdminPending';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
 
 // Shared Pages
 import Profile from './pages/Profile';
@@ -116,6 +117,7 @@ export default function App() {
                 <Route element={<AdminRoute />}>
                   <Route path="/admin/users" element={<AppLayout><AdminUsers /></AppLayout>} />
                   <Route path="/admin/pending" element={<AppLayout><AdminPending /></AppLayout>} />
+                  <Route path="/admin/analytics" element={<AppLayout><AdminAnalytics /></AppLayout>} />
                 </Route>
               </Route>
 

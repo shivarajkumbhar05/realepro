@@ -1,12 +1,13 @@
 // src/pages/buyer/PropertyList.jsx
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { getProperties } from '../../api/properties';
 import { 
   Building2, Search, Filter, MapPin, Bed, Bath, Square, 
   ChevronLeft, ChevronRight, Plus, Star, LayoutGrid, Map as MapIcon,
-  ChevronDown, ChevronUp, RefreshCw
+  ChevronDown, ChevronUp, SlidersHorizontal, Check
 } from 'lucide-react';
 import AllPropertiesMap from '../../components/map/AllPropertiesMap';
 import { getPropertyImage, isValidImageUrl } from '../../utils/imageUtils';
@@ -281,6 +282,13 @@ export default function PropertyList() {
     setAllPropertiesLoaded(false);
   };
 
+  const toggleFilterChip = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: prev[field] === value ? '' : value
+    }));
+  };
+
   const goPage = (pg) => {
     if (pg < 1 || pg > totalPages) return;
     setPage(pg);
@@ -354,62 +362,98 @@ export default function PropertyList() {
 
       {/* Filters panel */}
       {showFilters && (
-        <div className="card p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <select 
-            className="input-field text-sm" 
-            value={filters.type} 
-            onChange={e => handleFilterChange('type', e.target.value)}
-          >
-            <option value="">All Types</option>
-            {['apartment', 'house', 'villa', 'plot', 'commercial', 'office'].map(t => (
-              <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-            ))}
-          </select>
-          <select 
-            className="input-field text-sm" 
-            value={filters.status} 
-            onChange={e => handleFilterChange('status', e.target.value)}
-          >
-            <option value="">All Status</option>
-            {['sale', 'rent', 'sold', 'rented'].map(s => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
-          <input 
-            className="input-field text-sm" 
-            placeholder="City" 
-            value={filters.city} 
-            onChange={e => handleFilterChange('city', e.target.value)} 
-          />
-          <input 
-            className="input-field text-sm" 
-            placeholder="Min Price" 
-            type="number" 
-            value={filters.minPrice} 
-            onChange={e => handleFilterChange('minPrice', e.target.value)} 
-          />
-          <input 
-            className="input-field text-sm" 
-            placeholder="Max Price" 
-            type="number" 
-            value={filters.maxPrice} 
-            onChange={e => handleFilterChange('maxPrice', e.target.value)} 
-          />
-          <select 
-            className="input-field text-sm" 
-            value={filters.bedrooms} 
-            onChange={e => handleFilterChange('bedrooms', e.target.value)}
-          >
-            <option value="">Bedrooms</option>
-            {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}+</option>)}
-          </select>
-          <div className="col-span-2 md:col-span-3 lg:col-span-6 flex gap-2">
-            <button onClick={applyFilters} className="btn-primary text-sm">
-              Apply Filters
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary-50 text-primary-600">
+                <SlidersHorizontal className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Refine your search</h2>
+                <p className="text-sm text-gray-500">Choose the right type, status, and size for your next property.</p>
+              </div>
+            </div>
+            <button onClick={clearFilters} className="text-sm font-medium text-gray-500 hover:text-gray-700">
+              Reset filters
             </button>
-            <button onClick={clearFilters} className="btn-secondary text-sm">
-              Clear All
-            </button>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Property type</p>
+              <div className="flex flex-wrap gap-2">
+                {['apartment', 'house', 'villa', 'plot', 'commercial', 'office'].map(type => (
+                  <button
+                    key={type}
+                    onClick={() => toggleFilterChip('type', type)}
+                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${filters.type === type ? 'bg-primary-600 text-white border-primary-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'}`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Availability</p>
+              <div className="flex flex-wrap gap-2">
+                {['sale', 'rent'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => toggleFilterChip('status', status)}
+                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${filters.status === status ? 'bg-primary-600 text-white border-primary-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'}`}
+                  >
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Bedrooms</p>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 4].map(option => (
+                  <button
+                    key={option}
+                    onClick={() => toggleFilterChip('bedrooms', String(option))}
+                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${filters.bedrooms === String(option) ? 'bg-primary-600 text-white border-primary-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'}`}
+                  >
+                    {option}+ Bed
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">City</label>
+              <input className="input-field text-sm mt-1" placeholder="Enter city" value={filters.city} onChange={e => handleFilterChange('city', e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Min price</label>
+              <input className="input-field text-sm mt-1" placeholder="₹0" type="number" value={filters.minPrice} onChange={e => handleFilterChange('minPrice', e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Max price</label>
+              <input className="input-field text-sm mt-1" placeholder="₹1000000" type="number" value={filters.maxPrice} onChange={e => handleFilterChange('maxPrice', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(applied).filter(([key]) => key !== 'search').map(([key, value]) => (
+                <span key={key} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
+                  <Check className="w-3.5 h-3.5 text-primary-600" />
+                  {key === 'type' ? value : key === 'status' ? value : key === 'bedrooms' ? `${value}+ bed` : value}
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={applyFilters} className="btn-primary text-sm">
+                Apply Filters
+              </button>
+            </div>
           </div>
         </div>
       )}

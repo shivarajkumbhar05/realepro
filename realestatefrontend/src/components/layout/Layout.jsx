@@ -147,9 +147,9 @@ export default function Layout({ children }) {
             <Link
               key={path}
               to={path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+              className={`flex items-center gap-3 px-3 py-2.75 rounded-xl text-sm font-medium transition-all duration-200 group ${
                 active
-                  ? `bg-gradient-to-r ${meta.gradient} text-white shadow-lg shadow-primary-500/30`
+                  ? `bg-gradient-to-r ${meta.gradient} text-white shadow-lg shadow-primary-500/20`
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
               }`}
             >

@@ -181,6 +181,70 @@ exports.getPendingProperties = async (req, res) => {
   }
 };
 
+// ─── @route  GET /api/admin/analytics ───────────────────────────────────────
+// ─── @access Private (admin only)
+exports.getAnalytics = async (req, res) => {
+  try {
+    const [totalUsers, totalAgents, totalBuyers, totalProperties, approvedProperties, pendingProperties, soldProperties, totalReviews, totalPurchases] = await Promise.all([
+      User.countDocuments({ isActive: true }),
+      User.countDocuments({ role: 'agent', isActive: true }),
+      User.countDocuments({ role: 'buyer', isActive: true }),
+      Property.countDocuments({ isActive: true }),
+      Property.countDocuments({ isActive: true, isApproved: true }),
+      Property.countDocuments({ isActive: true, isApproved: false }),
+      Property.countDocuments({ isActive: true, status: 'sold' }),
+      Review.countDocuments(),
+      Purchase.countDocuments(),
+    ]);
+
+    const monthlySignups = await User.aggregate([
+      { $match: { createdAt: { $exists: true }, isActive: true } },
+      { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      { $limit: 6 },
+    ]);
+
+    const monthlyListings = await Property.aggregate([
+      { $match: { createdAt: { $exists: true }, isActive: true } },
+      { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      { $limit: 6 },
+    ]);
+
+    const recentActivity = await Promise.all([
+      Property.find({ isActive: true }).sort({ createdAt: -1 }).limit(5).populate('agent', 'name'),
+      Purchase.find().sort({ createdAt: -1 }).limit(5).populate('property', 'title').populate('buyer', 'name'),
+      Review.find().sort({ createdAt: -1 }).limit(5).populate('property', 'title').populate('user', 'name'),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        overview: {
+          totalUsers,
+          totalAgents,
+          totalBuyers,
+          totalProperties,
+          approvedProperties,
+          pendingProperties,
+          soldProperties,
+          totalReviews,
+          totalPurchases,
+        },
+        monthlySignups,
+        monthlyListings,
+        recentActivity: {
+          properties: recentActivity[0],
+          purchases: recentActivity[1],
+          reviews: recentActivity[2],
+        },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ─── @route  POST /api/admin/users ────────────────────────────────────────────
 // ─── @access Private (admin only) — Create any role including admin
 exports.createUser = async (req, res) => {
