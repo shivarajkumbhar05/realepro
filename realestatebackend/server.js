@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const net = require('net');
 const connectDB = require('./config/db');
+const { getDBConnection } = require('./config/db');
 const User = require('./models/User');
 
 // Load env vars
@@ -51,15 +52,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://localhost:3000",
   "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
   "https://realepro-9g99aio8i-squad-tech.vercel.app",
   "https://realepro.vercel.app"
 ];
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  return allowedOrigins.includes(origin)
+    || /^http:\/\/localhost:\d+$/.test(origin)
+    || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin);
+};
+
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       console.log('Blocked by CORS:', origin);
@@ -68,11 +78,13 @@ app.use(cors({
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 
 // ─── Static File Serving ──────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.options('*', cors());
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 console.log('🔍 Loading authRoutes...');
@@ -174,6 +186,9 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectDB();
+    if (!getDBConnection()) {
+      throw new Error('Database connection was not established.');
+    }
     await ensureDefaultAdmin();
 
     const server = app.listen(PORT, () => {

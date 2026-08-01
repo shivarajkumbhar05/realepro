@@ -11,6 +11,18 @@ export function AuthProvider({ children }) {
 
   const [loading, setLoading] = useState(true);
 
+  const setAuthUser = useCallback((nextUser) => {
+    setUser(nextUser);
+
+    if (nextUser) {
+      localStorage.setItem("re_user", JSON.stringify(nextUser));
+      localStorage.setItem("user", JSON.stringify(nextUser));
+    } else {
+      localStorage.removeItem("re_user");
+      localStorage.removeItem("user");
+    }
+  }, []);
+
   // ================= LOGIN =================
 
   const login = async (credentials) => {
@@ -18,10 +30,8 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem("re_token", data.token);
     localStorage.setItem("token", data.token);
-    localStorage.setItem("re_user", JSON.stringify(data.user));
-    localStorage.setItem("user", JSON.stringify(data.user));
 
-    setUser(data.user);
+    setAuthUser(data.user);
 
     return data;
   };
@@ -34,10 +44,8 @@ export function AuthProvider({ children }) {
 
     localStorage.setItem("re_token", data.token);
     localStorage.setItem("token", data.token);
-    localStorage.setItem("re_user", JSON.stringify(data.user));
-    localStorage.setItem("user", JSON.stringify(data.user));
 
-    setUser(data.user);
+    setAuthUser(data.user);
 
     return data;
   };
@@ -51,11 +59,9 @@ export function AuthProvider({ children }) {
 
     localStorage.removeItem("re_token");
     localStorage.removeItem("token");
-    localStorage.removeItem("re_user");
-    localStorage.removeItem("user");
 
-    setUser(null);
-  }, []);
+    setAuthUser(null);
+  }, [setAuthUser]);
 
   // ============== REFRESH USER ==============
 
@@ -70,22 +76,13 @@ export function AuthProvider({ children }) {
 
       const { data } = await authApi.getMe();
 
-      localStorage.setItem(
-        "re_user",
-        JSON.stringify(data.data)
-      );
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.data)
-      );
-
-      setUser(data.data);
+      setAuthUser(data.data);
     } catch (err) {
       logout();
     } finally {
       setLoading(false);
     }
-  }, [logout]);
+  }, [logout, setAuthUser]);
 
   useEffect(() => {
     refreshUser();
@@ -100,6 +97,7 @@ export function AuthProvider({ children }) {
         register,
         logout,
         refreshUser,
+        setAuthUser,
 
         isAdmin: user?.role === "admin",
         isAgent: user?.role === "agent",

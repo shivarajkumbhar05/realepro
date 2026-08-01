@@ -2,43 +2,54 @@ const dns = require('dns');
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 
-let mongoMemoryServer;
+let dbConnection = null;
 
 const connectDB = async () => {
   try {
     if (mongoose.connection.readyState >= 1) {
-      return mongoose.connection;
+      dbConnection = mongoose.connection;
+      return dbConnection;
     }
 
-    const uri = process.env.MONGO_URI;
-
-    try {
-      const conn = await mongoose.connect(uri || 'mongodb://127.0.0.1:27017/realestate');
-      console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-      return conn;
-    } catch (error) {
-      console.warn('⚠️ Primary MongoDB connection failed, starting in-memory MongoDB for local development.');
-      mongoMemoryServer = await MongoMemoryServer.create();
-      const memoryUri = mongoMemoryServer.getUri();
-      const conn = await mongoose.connect(memoryUri);
-      console.log(`✅ In-memory MongoDB Connected: ${conn.connection.host}`);
-      return conn;
+    const candidates = [];
+    if (process.env.MONGO_URI) {
+      candidates.push(process.env.MONGO_URI);
     }
+    candidates.push('mongodb://127.0.0.1:27017/realestate');
+
+    let lastError;
+
+    for (const uri of candidates) {
+      try {
+        const conn = await mongoose.connect(uri, {
+          serverSelectionTimeoutMS: 12000,
+          connectTimeoutMS: 12000,
+          maxPoolSize: 10,
+        });
+
+        dbConnection = conn.connection;
+        console.log(`✅ MongoDB Connected: ${dbConnection.host}`);
+        return dbConnection;
+      } catch (error) {
+        lastError = error;
+        console.warn(`⚠️ Could not connect to ${uri}: ${error.message}`);
+      }
+    }
+
+    throw lastError || new Error('MongoDB connection failed');
   } catch (error) {
-    console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
+    console.error(`❌ MongoDB connection failed: ${error.message}`);
+    throw error;
   }
 };
+
+const getDBConnection = () => dbConnection;
 
 process.on('SIGINT', async () => {
   try {
     if (mongoose.connection.readyState) {
       await mongoose.disconnect();
-    }
-    if (mongoMemoryServer) {
-      await mongoMemoryServer.stop();
     }
   } finally {
     process.exit(0);
@@ -46,3 +57,4 @@ process.on('SIGINT', async () => {
 });
 
 module.exports = connectDB;
+module.exports.getDBConnection = getDBConnection;

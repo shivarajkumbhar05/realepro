@@ -1,5 +1,5 @@
 /**
- * Seed Script — creates default admin user and 44+ properties
+ * Seed Script — creates default admin user and 100+ properties
  * Run: node seed.js
  */
 const mongoose = require('mongoose');
@@ -31,12 +31,12 @@ const seedAdmin = async () => {
       console.log('⚠️ Admin user already exists');
     }
 
-    // Create 44+ Properties
+    // Create 100+ Properties
     const propertyCount = await Property.countDocuments();
     if (propertyCount > 0) {
       console.log(`⚠️ ${propertyCount} properties already exist. Skipping property seed.`);
     } else {
-      console.log('🏠 Creating 44+ properties...');
+      console.log('🏠 Creating 100+ properties...');
       
       const properties = generateProperties(admin._id);
       await Property.insertMany(properties);

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { 
@@ -10,13 +11,14 @@ import {
 import toast from "react-hot-toast";
 import AuthFooter from "../../components/layout/AuthFooter";
 import { motion } from "framer-motion";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, googleProvider } from "../../firebase";
 
 const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { setAuthUser } = useAuth();
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,16 +36,59 @@ export default function Register() {
     },
   });
 
+  const getPostLoginRedirect = (userRole) => {
+    const redirectPath = sessionStorage.getItem("redirectAfterLogin");
+    const normalizedPath = redirectPath && redirectPath !== "/login" && redirectPath !== "/register" ? redirectPath : null;
+
+    if (normalizedPath) {
+      sessionStorage.removeItem("redirectAfterLogin");
+      return normalizedPath;
+    }
+
+    if (userRole === "admin") return "/admin/users";
+    if (userRole === "agent") return "/agent/my-listings";
+    return "/dashboard";
+  };
+
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          const user = result.user;
+          const res = await axios.post(`${API}/google-register`, {
+            email: user.email,
+            name: user.displayName || user.email.split('@')[0],
+            googleId: user.uid,
+            avatar: user.photoURL || '',
+            role: getValues("role") || "buyer"
+          });
+
+          localStorage.setItem("token", res.data.token);
+          localStorage.setItem("re_token", res.data.token);
+          setAuthUser(res.data.user);
+
+          toast.success("🎉 Google Registration Successful! Welcome to PropEstate.");
+          navigate(getPostLoginRedirect(res.data.user?.role), { replace: true });
+        }
+      } catch (error) {
+        console.error("Google redirect result error:", error);
+        toast.error(error.message || "Google Registration Failed");
+      }
+    };
+
+    handleRedirectResult();
+  }, [getValues, navigate, setAuthUser]);
+
   const onSubmit = async (data) => {
     try {
       setLoading(true);
       const res = await axios.post(`${API}/register`, data);
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("re_token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("re_user", JSON.stringify(res.data.user));
+      setAuthUser(res.data.user);
       toast.success("🎉 Registration Successful! Welcome to PropEstate.");
-      navigate("/dashboard");
+      navigate(getPostLoginRedirect(res.data.user?.role), { replace: true });
     } catch (err) {
       const message = err.response?.data?.message || err.message || "Registration Failed";
       toast.error(message);
@@ -56,25 +101,7 @@ export default function Register() {
   const handleGoogleSignUp = async () => {
     try {
       setGoogleLoading(true);
-      
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
-      const res = await axios.post(`${API}/google-register`, {
-        email: user.email,
-        name: user.displayName || user.email.split('@')[0],
-        googleId: user.uid,
-        avatar: user.photoURL || '',
-        role: getValues("role") || "buyer"
-      });
-      
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("re_token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("re_user", JSON.stringify(res.data.user));
-      
-      toast.success("🎉 Google Registration Successful! Welcome to PropEstate.");
-      navigate("/dashboard");
+      await signInWithRedirect(auth, googleProvider);
     } catch (error) {
       if (error.code === 'auth/popup-closed-by-user') {
         toast.error("Sign-in was cancelled");
@@ -84,7 +111,6 @@ export default function Register() {
         toast.error(error.message || "Google Registration Failed");
       }
       console.error("Google Sign-Up Error:", error);
-    } finally {
       setGoogleLoading(false);
     }
   };

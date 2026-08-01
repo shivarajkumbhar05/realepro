@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../../context/AuthContext";
@@ -29,7 +29,7 @@ import { auth, googleProvider } from "../../firebase";
 const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, setAuthUser } = useAuth();
   const navigate = useNavigate();
 
   const [showPw, setShowPw] = useState(false);
@@ -44,8 +44,22 @@ export default function Login() {
     formState: { errors },
   } = useForm();
 
+  const getPostLoginRedirect = (userRole) => {
+    const redirectPath = sessionStorage.getItem("redirectAfterLogin");
+    const normalizedPath = redirectPath && redirectPath !== "/login" && redirectPath !== "/register" ? redirectPath : null;
+
+    if (normalizedPath) {
+      sessionStorage.removeItem("redirectAfterLogin");
+      return normalizedPath;
+    }
+
+    if (userRole === "admin") return "/admin/users";
+    if (userRole === "agent") return "/agent/my-listings";
+    return "/dashboard";
+  };
+
   // Check for redirect result on mount
-  useState(() => {
+  useEffect(() => {
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
@@ -63,9 +77,10 @@ export default function Login() {
   const onSubmit = async (formData) => {
     try {
       setLoading(true);
-      await login(formData);
+      const response = await login(formData);
+      const target = getPostLoginRedirect(response?.user?.role);
       toast.success("🎉 Welcome Back! Let's find your dream home.");
-      navigate("/dashboard");
+      navigate(target, { replace: true });
     } catch (error) {
       const message = error.response?.data?.message || error.message || "Login Failed. Please try again.";
       toast.error(message);
@@ -104,11 +119,10 @@ export default function Login() {
       
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("re_token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("re_user", JSON.stringify(res.data.user));
+      setAuthUser(res.data.user);
       
       toast.success("🎉 Google Login Successful! Welcome back.");
-      navigate("/dashboard");
+      navigate(getPostLoginRedirect(res.data.user?.role), { replace: true });
     } catch (error) {
       if (error.response?.status === 404) {
         toast.error("No account found. Please sign up first.");
@@ -125,18 +139,15 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
-      
-      // Try popup first
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      await handleGoogleUser(user);
-      
+
+      const result = await signInWithRedirect(auth, googleProvider);
+      if (result) {
+        const user = result.user;
+        await handleGoogleUser(user);
+      }
     } catch (error) {
-      // If popup is blocked, try redirect method
       if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-        toast.error("Popup was blocked. Please allow popups or use the redirect method.");
-        // Option: Use redirect as fallback
-        // await signInWithRedirect(auth, googleProvider);
+        toast.error("Popup was blocked. Please allow popups or try again.");
       } else if (error.code === 'auth/cancelled-popup-request') {
         toast.error("Login was cancelled");
       } else {

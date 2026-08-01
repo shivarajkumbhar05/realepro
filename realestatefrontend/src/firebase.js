@@ -24,9 +24,10 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
 
 // Initialize Google Auth Provider with custom parameters
 export const googleProvider = new GoogleAuthProvider();
-// Add custom parameters to avoid popup issues
+// Add custom parameters to reduce popup issues
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  flow: 'redirect'
 });
 
 export default app;
