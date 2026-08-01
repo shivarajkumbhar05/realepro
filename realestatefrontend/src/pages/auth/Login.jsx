@@ -67,9 +67,8 @@ export default function Login() {
       toast.success("🎉 Welcome Back! Let's find your dream home.");
       navigate("/dashboard");
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Login Failed. Please try again."
-      );
+      const message = error.response?.data?.message || error.message || "Login Failed. Please try again.";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

@@ -45,7 +45,8 @@ export default function Register() {
       toast.success("🎉 Registration Successful! Welcome to PropEstate.");
       navigate("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Registration Failed");
+      const message = err.response?.data?.message || err.message || "Registration Failed";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

@@ -44,7 +44,11 @@ exports.register = async (req, res) => {
     const user = await User.create({ name, email: email.toLowerCase(), password, role: assignedRole, phone });
     sendTokenResponse(user, 201, res, 'Registered successfully');
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Register error:', error);
+    const message = error?.name === 'MongoServerSelectionError' || error?.name === 'MongoNetworkError' || error?.message?.includes('ECONNREFUSED')
+      ? 'Database connection failed. Please try again in a moment.'
+      : error.message;
+    res.status(500).json({ success: false, message });
   }
 };
 
@@ -68,7 +72,11 @@ exports.login = async (req, res) => {
 
     sendTokenResponse(user, 200, res, 'Logged in successfully');
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Login error:', error);
+    const message = error?.name === 'MongoServerSelectionError' || error?.name === 'MongoNetworkError' || error?.message?.includes('ECONNREFUSED')
+      ? 'Database connection failed. Please try again in a moment.'
+      : error.message;
+    res.status(500).json({ success: false, message });
   }
 };
 
