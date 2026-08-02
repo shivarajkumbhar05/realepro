@@ -4,6 +4,7 @@ import { pinIcon, DEFAULT_CENTER, DEFAULT_ZOOM } from './mapIcons';
 import { Building2, MapPin, Star, Navigation, Maximize2, Minimize2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { resolveImageUrl } from '../../utils/imageUtils';
 
 // ─── Map Controls Component ────────────────────────────────────────────
 function MapControls({ onZoomIn, onZoomOut, onReset, onFullscreen, isFullscreen }) {
@@ -83,9 +84,7 @@ function PropertyCountBadge({ count }) {
 // ─── Custom Popup Component ────────────────────────────────────────────
 function PropertyPopup({ property }) {
   const [imageError, setImageError] = useState(false);
-  const img = property.images?.[0] 
-    ? `https://realepro.onrender.com${property.images[0].path}` 
-    : null;
+  const img = property.images?.[0] ? resolveImageUrl(property.images[0]) : null;
 
   return (
     <div className="min-w-[220px] max-w-[260px]">

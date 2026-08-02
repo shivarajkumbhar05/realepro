@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPropertiesByAgent, deleteProperty } from '../../api/properties';
 import { useAuth } from '../../context/AuthContext';
+import { resolveImageUrl } from '../../utils/imageUtils';
 import { 
   Building2, Plus, Edit, Trash2, Eye, MapPin, 
   Home, Clock, CheckCircle, XCircle, Sparkles,
@@ -256,7 +257,7 @@ export default function MyListings() {
             : 'space-y-4'
           }>
             {filteredProperties.map((p, index) => {
-              const img = p.images?.[0] ? `${BASE}${p.images[0].path}` : null;
+              const img = p.images?.[0] ? resolveImageUrl(p.images[0]) : null;
               
               if (viewMode === 'list') {
                 return (

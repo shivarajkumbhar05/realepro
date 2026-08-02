@@ -93,6 +93,14 @@ export const resolveImageUrl = (image) => {
     if (image.data) {
       return resolveImageUrl(image.data);
     }
+    // Check for filename property
+    if (image.filename) {
+      return resolveImageUrl(image.filename);
+    }
+    // Check for name property
+    if (image.name) {
+      return resolveImageUrl(image.name);
+    }
   }
 
   // If nothing works, return null

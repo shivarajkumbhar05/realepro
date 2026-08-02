@@ -1,5 +1,5 @@
 // src/pages/buyer/PropertyList.jsx
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -7,31 +7,36 @@ import { getProperties } from '../../api/properties';
 import { 
   Building2, Search, Filter, MapPin, Bed, Bath, Square, 
   ChevronLeft, ChevronRight, Plus, Star, LayoutGrid, Map as MapIcon,
-  ChevronDown, ChevronUp, SlidersHorizontal, Check
+  ChevronDown, ChevronUp, SlidersHorizontal, Check, AlertCircle
 } from 'lucide-react';
 import AllPropertiesMap from '../../components/map/AllPropertiesMap';
 import { getPropertyImage, isValidImageUrl } from '../../utils/imageUtils';
 
 // ─── Component: PropertyCard ──────────────────────────────────────────
 function PropertyCard({ property, isAdmin, isAgent, user }) {
-  const img = getPropertyImage(
-    property.images?.[0] || property.image, 
-    property.title || 'Property'
-  );
+  const [imageError, setImageError] = useState(false);
+  
+  const img = useMemo(() => {
+    const image = property.images?.[0] || property.image;
+    return getPropertyImage(image, property.title || 'Property');
+  }, [property.images, property.image, property.title]);
+
   const isOwner = property.agent?._id === user?.id || property.agent === user?.id;
+
+  const handleImageError = (e) => {
+    setImageError(true);
+    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(property.title || 'Property')}&background=random&color=fff&size=400`;
+  };
 
   return (
     <div className="card overflow-hidden hover:shadow-md transition-shadow">
       <div className="aspect-video bg-gray-200 relative overflow-hidden">
-        {img && isValidImageUrl(img) ? (
+        {img && isValidImageUrl(img) && !imageError ? (
           <img 
             src={img} 
             alt={property.title || 'Property'} 
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(property.title || 'Property')}&background=random&color=fff&size=400`;
-              e.target.onerror = null;
-            }}
+            onError={handleImageError}
             loading="lazy"
           />
         ) : (
@@ -79,7 +84,7 @@ function PropertyCard({ property, isAdmin, isAgent, user }) {
             </span>
           )}
           <span className="flex items-center gap-1">
-            <Square className="w-3 h-3" />{property.area} {property.areaUnit}
+            <Square className="w-3 h-3" />{property.area} {property.areaUnit || 'sq ft'}
           </span>
         </div>
         <div className="flex items-center justify-between mt-3">
@@ -115,7 +120,7 @@ export default function PropertyList() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProperties, setTotalProperties] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  const [limit, setLimit] = useState(12); // Default limit
+  const [limit] = useState(12); // Default limit
   const [showAll, setShowAll] = useState(false);
   const [filters, setFilters] = useState({
     search: '', 
@@ -134,7 +139,7 @@ export default function PropertyList() {
 
   // ─── Load Properties ─────────────────────────────────────────────────
   const load = useCallback(async (pg = 1, params = {}, loadAll = false) => {
-    const currentLimit = loadAll ? 100 : limit; // Load all if showAll is true
+    const currentLimit = loadAll ? 1000 : limit;
     setLoading(true);
     setError(null);
     
@@ -153,23 +158,55 @@ export default function PropertyList() {
       let totalPagesData = 1;
       let totalData = 0;
       
-      if (response?.data) {
-        if (response.data.data) {
-          propertiesData = response.data.data;
-          totalPagesData = response.data.pages || Math.ceil((response.data.total || 0) / currentLimit);
-          totalData = response.data.total || 0;
-        } else if (Array.isArray(response.data)) {
-          propertiesData = response.data;
-          totalPagesData = response.pages || 1;
-          totalData = response.total || propertiesData.length;
+      // Handle different response formats
+      if (response) {
+        // Check if response has data property
+        if (response.data) {
+          // Check if data has data array (nested)
+          if (response.data.data && Array.isArray(response.data.data)) {
+            propertiesData = response.data.data;
+            totalPagesData = response.data.pages || response.data.totalPages || 1;
+            totalData = response.data.total || response.data.totalCount || 0;
+          } 
+          // Check if data is an array
+          else if (Array.isArray(response.data)) {
+            propertiesData = response.data;
+            totalData = response.data.length;
+          }
+          // Check if data has properties array
+          else if (response.data.properties && Array.isArray(response.data.properties)) {
+            propertiesData = response.data.properties;
+            totalPagesData = response.data.totalPages || 1;
+            totalData = response.data.total || 0;
+          }
+          // Check if data has items array
+          else if (response.data.items && Array.isArray(response.data.items)) {
+            propertiesData = response.data.items;
+            totalPagesData = response.data.totalPages || 1;
+            totalData = response.data.total || 0;
+          }
+          // Check if data has results array
+          else if (response.data.results && Array.isArray(response.data.results)) {
+            propertiesData = response.data.results;
+            totalPagesData = response.data.totalPages || 1;
+            totalData = response.data.total || 0;
+          }
+        } 
+        // Check if response itself is an array
+        else if (Array.isArray(response)) {
+          propertiesData = response;
+          totalData = response.length;
         }
-      } else if (Array.isArray(response)) {
-        propertiesData = response;
       }
       
-      setProperties(propertiesData || []);
-      setTotalPages(totalPagesData || 1);
-      setTotalProperties(totalData || propertiesData?.length || 0);
+      // Ensure we have valid data
+      if (!Array.isArray(propertiesData)) {
+        propertiesData = [];
+      }
+      
+      setProperties(propertiesData);
+      setTotalPages(Math.max(totalPagesData, 1));
+      setTotalProperties(Math.max(totalData, propertiesData.length));
       
       // Check if all properties are loaded
       if (loadAll || propertiesData.length >= totalData) {
@@ -182,30 +219,48 @@ export default function PropertyList() {
       
     } catch (err) {
       console.error('Failed to load properties:', err);
-      setError(err?.response?.data?.message || err.message || 'Failed to load properties');
+      const errorMessage = err?.response?.data?.message || err.message || 'Failed to load properties';
+      setError(errorMessage);
       setProperties([]);
       setTotalPages(1);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [limit]);
 
   // ─── Load All Properties ─────────────────────────────────────────────
-  const loadAllProperties = async () => {
+  const loadAllProperties = useCallback(async () => {
     setLoadingMore(true);
     try {
       const response = await getProperties({ 
         page: 1, 
-        limit: 200, // Load all properties
+        limit: 1000, // Load all properties
         ...applied 
       });
       
       let propertiesData = [];
-      if (response?.data?.data) {
-        propertiesData = response.data.data;
-      } else if (Array.isArray(response?.data)) {
-        propertiesData = response.data;
-      } else if (Array.isArray(response)) {
-        propertiesData = response;
+      
+      if (response) {
+        if (response.data) {
+          if (response.data.data && Array.isArray(response.data.data)) {
+            propertiesData = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            propertiesData = response.data;
+          } else if (response.data.properties && Array.isArray(response.data.properties)) {
+            propertiesData = response.data.properties;
+          } else if (response.data.items && Array.isArray(response.data.items)) {
+            propertiesData = response.data.items;
+          } else if (response.data.results && Array.isArray(response.data.results)) {
+            propertiesData = response.data.results;
+          }
+        } else if (Array.isArray(response)) {
+          propertiesData = response;
+        }
+      }
+      
+      if (!Array.isArray(propertiesData)) {
+        propertiesData = [];
       }
       
       setProperties(propertiesData);
@@ -222,7 +277,7 @@ export default function PropertyList() {
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [applied]);
 
   // ─── Load Map Properties ─────────────────────────────────────────────
   const loadMap = useCallback(async (params = {}) => {
@@ -231,20 +286,36 @@ export default function PropertyList() {
       const response = await getProperties({ page: 1, limit: 200, ...params });
       
       let mapData = [];
-      if (response?.data?.data) {
-        mapData = response.data.data;
-      } else if (Array.isArray(response?.data)) {
-        mapData = response.data;
-      } else if (Array.isArray(response)) {
-        mapData = response;
+      if (response) {
+        if (response.data) {
+          if (response.data.data && Array.isArray(response.data.data)) {
+            mapData = response.data.data;
+          } else if (Array.isArray(response.data)) {
+            mapData = response.data;
+          } else if (response.data.properties && Array.isArray(response.data.properties)) {
+            mapData = response.data.properties;
+          } else if (response.data.items && Array.isArray(response.data.items)) {
+            mapData = response.data.items;
+          } else if (response.data.results && Array.isArray(response.data.results)) {
+            mapData = response.data.results;
+          }
+        } else if (Array.isArray(response)) {
+          mapData = response;
+        }
+      }
+      
+      if (!Array.isArray(mapData)) {
+        mapData = [];
       }
       
       setMapProperties(mapData);
     } catch (err) {
       console.error('Failed to load map properties:', err);
       setMapProperties([]);
+      toast.error('Failed to load map properties');
+    } finally {
+      setMapLoading(false);
     }
-    setMapLoading(false);
   }, []);
 
   // ─── Effects ─────────────────────────────────────────────────────────
@@ -261,7 +332,7 @@ export default function PropertyList() {
   }, [viewMode, applied, loadMap, mapProperties.length, mapLoading]);
 
   // ─── Filter Functions ─────────────────────────────────────────────────
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     const cleaned = Object.fromEntries(
       Object.entries(filters).filter(([, v]) => v !== '' && v !== null && v !== undefined)
     );
@@ -269,9 +340,9 @@ export default function PropertyList() {
     setPage(1);
     setShowAll(false);
     setAllPropertiesLoaded(false);
-  };
+  }, [filters]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters({
       search: '', type: '', status: '', city: '', 
       minPrice: '', maxPrice: '', bedrooms: ''
@@ -280,25 +351,35 @@ export default function PropertyList() {
     setPage(1);
     setShowAll(false);
     setAllPropertiesLoaded(false);
-  };
+  }, []);
 
-  const toggleFilterChip = (field, value) => {
+  const toggleFilterChip = useCallback((field, value) => {
     setFilters(prev => ({
       ...prev,
       [field]: prev[field] === value ? '' : value
     }));
-  };
+  }, []);
 
-  const goPage = (pg) => {
+  const goPage = useCallback((pg) => {
     if (pg < 1 || pg > totalPages) return;
     setPage(pg);
     load(pg, applied);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [totalPages, applied, load]);
 
-  const handleFilterChange = (field, value) => {
+  const handleFilterChange = useCallback((field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
-  };
+  }, []);
+
+  const handleShowAllToggle = useCallback(() => {
+    if (showAll) {
+      setShowAll(false);
+      setAllPropertiesLoaded(false);
+      load(1, applied);
+    } else {
+      loadAllProperties();
+    }
+  }, [showAll, applied, load, loadAllProperties]);
 
   // ─── Render ──────────────────────────────────────────────────────────
   return (
@@ -386,7 +467,11 @@ export default function PropertyList() {
                   <button
                     key={type}
                     onClick={() => toggleFilterChip('type', type)}
-                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${filters.type === type ? 'bg-primary-600 text-white border-primary-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'}`}
+                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${
+                      filters.type === type 
+                        ? 'bg-primary-600 text-white border-primary-600 shadow-sm' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'
+                    }`}
                   >
                     {type.charAt(0).toUpperCase() + type.slice(1)}
                   </button>
@@ -401,7 +486,11 @@ export default function PropertyList() {
                   <button
                     key={status}
                     onClick={() => toggleFilterChip('status', status)}
-                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${filters.status === status ? 'bg-primary-600 text-white border-primary-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'}`}
+                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${
+                      filters.status === status 
+                        ? 'bg-primary-600 text-white border-primary-600 shadow-sm' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'
+                    }`}
                   >
                     {status.charAt(0).toUpperCase() + status.slice(1)}
                   </button>
@@ -416,7 +505,11 @@ export default function PropertyList() {
                   <button
                     key={option}
                     onClick={() => toggleFilterChip('bedrooms', String(option))}
-                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${filters.bedrooms === String(option) ? 'bg-primary-600 text-white border-primary-600 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'}`}
+                    className={`px-3 py-2 rounded-full text-sm font-medium border transition-all ${
+                      filters.bedrooms === String(option) 
+                        ? 'bg-primary-600 text-white border-primary-600 shadow-sm' 
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300 hover:text-primary-600'
+                    }`}
                   >
                     {option}+ Bed
                   </button>
@@ -428,15 +521,32 @@ export default function PropertyList() {
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">City</label>
-              <input className="input-field text-sm mt-1" placeholder="Enter city" value={filters.city} onChange={e => handleFilterChange('city', e.target.value)} />
+              <input 
+                className="input-field text-sm mt-1" 
+                placeholder="Enter city" 
+                value={filters.city} 
+                onChange={e => handleFilterChange('city', e.target.value)} 
+              />
             </div>
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Min price</label>
-              <input className="input-field text-sm mt-1" placeholder="₹0" type="number" value={filters.minPrice} onChange={e => handleFilterChange('minPrice', e.target.value)} />
+              <input 
+                className="input-field text-sm mt-1" 
+                placeholder="₹0" 
+                type="number" 
+                value={filters.minPrice} 
+                onChange={e => handleFilterChange('minPrice', e.target.value)} 
+              />
             </div>
             <div>
               <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">Max price</label>
-              <input className="input-field text-sm mt-1" placeholder="₹1000000" type="number" value={filters.maxPrice} onChange={e => handleFilterChange('maxPrice', e.target.value)} />
+              <input 
+                className="input-field text-sm mt-1" 
+                placeholder="₹1000000" 
+                type="number" 
+                value={filters.maxPrice} 
+                onChange={e => handleFilterChange('maxPrice', e.target.value)} 
+              />
             </div>
           </div>
 
@@ -461,14 +571,19 @@ export default function PropertyList() {
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          <p className="font-medium">Error loading properties</p>
-          <p className="text-sm">{error}</p>
-          <button 
-            onClick={() => load(page, applied)} 
-            className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
-          >
-            Try Again
-          </button>
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">Error loading properties</p>
+              <p className="text-sm">{error}</p>
+              <button 
+                onClick={() => load(page, applied)} 
+                className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -612,11 +727,7 @@ export default function PropertyList() {
           {showAll && (
             <div className="flex justify-center pt-4">
               <button
-                onClick={() => {
-                  setShowAll(false);
-                  setAllPropertiesLoaded(false);
-                  load(1, applied);
-                }}
+                onClick={handleShowAllToggle}
                 className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2"
               >
                 <ChevronUp className="w-4 h-4" />

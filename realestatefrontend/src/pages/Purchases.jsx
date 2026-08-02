@@ -1,17 +1,19 @@
+// src/pages/buyer/Purchases.jsx
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getMyPurchases, getReceivedPurchases, updatePurchaseStatus } from '../api/purchases';
+import { resolveImageUrl, getPlaceholderImage } from '../utils/imageUtils';
 import { 
   ShoppingBag, Inbox, Check, X, Ban, MapPin, Building2, 
   Filter, ChevronDown, ChevronUp, Search, Calendar, 
   TrendingUp, TrendingDown, DollarSign, Users, Clock,
-  Download, RefreshCw, PieChart, BarChart3, Eye
+  Download, RefreshCw, PieChart, BarChart3, Eye, AlertCircle,
+  ArrowRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://realepro.onrender.com';
-
+// ─── Status Styles ──────────────────────────────────────────────────────
 const STATUS_STYLE = {
   pending: 'bg-yellow-100 text-yellow-800',
   accepted: 'bg-green-100 text-green-800',
@@ -26,8 +28,8 @@ const STATUS_ICONS = {
   cancelled: <Ban className="w-3 h-3" />,
 };
 
-// Analytics Card Component
-function AnalyticsCard({ title, value, icon: Icon, trend, trendValue, color = 'primary' }) {
+// ─── Analytics Card ─────────────────────────────────────────────────────
+function AnalyticsCard({ title, value, icon: Icon, color = 'primary' }) {
   const colors = {
     primary: 'bg-primary-50 text-primary-600',
     green: 'bg-green-50 text-green-600',
@@ -37,24 +39,11 @@ function AnalyticsCard({ title, value, icon: Icon, trend, trendValue, color = 'p
   };
 
   return (
-    <div className="card p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          {trend !== undefined && (
-            <div className="flex items-center gap-1 mt-1">
-              {trend > 0 ? (
-                <TrendingUp className="w-3 h-3 text-green-500" />
-              ) : trend < 0 ? (
-                <TrendingDown className="w-3 h-3 text-red-500" />
-              ) : null}
-              <span className={`text-xs font-medium ${trend > 0 ? 'text-green-600' : trend < 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                {trend > 0 ? '+' : ''}{trendValue}%
-              </span>
-              <span className="text-xs text-gray-400">vs last month</span>
-            </div>
-          )}
         </div>
         <div className={`p-2 rounded-lg ${colors[color]}`}>
           <Icon className="w-5 h-5" />
@@ -64,28 +53,63 @@ function AnalyticsCard({ title, value, icon: Icon, trend, trendValue, color = 'p
   );
 }
 
-// Enhanced Purchase Card with Analytics
-function PurchaseCard({ p, mode, onAction, onViewDetails }) {
-  const img = p.property?.images?.[0] ? `${BASE}${p.property.images[0].path}` : null;
-  const otherParty = mode === 'sent' ? p.agent : p.buyer;
-  const [expanded, setExpanded] = useState(false);
+// ─── Purchase Card ──────────────────────────────────────────────────────
+function PurchaseCard({ purchase, mode, onAction, onViewDetails }) {
+  const [imageError, setImageError] = useState(false);
+  const navigate = useNavigate();
+  
+  // Get image URL
+  const imageUrl = useMemo(() => {
+    if (imageError) return null;
+    const img = purchase.property?.images?.[0];
+    if (!img) return null;
+    return resolveImageUrl(img);
+  }, [purchase.property?.images, imageError]);
+
+  const otherParty = mode === 'sent' ? purchase.agent : purchase.buyer;
 
   const getStatusBadge = (status) => (
-    <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium capitalize ${STATUS_STYLE[status]}`}>
-      {STATUS_ICONS[status]} {status}
+    <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium capitalize ${STATUS_STYLE[status] || 'bg-gray-100 text-gray-600'}`}>
+      {STATUS_ICONS[status] || <Clock className="w-3 h-3" />} {status || 'pending'}
     </span>
   );
 
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const handleCardClick = () => {
+    if (purchase.property?._id) {
+      navigate(`/property/${purchase.property._id}`);
+    } else {
+      onViewDetails?.(purchase._id);
+    }
+  };
+
+  const handleViewDetailsClick = (e) => {
+    e.stopPropagation();
+    if (purchase.property?._id) {
+      navigate(`/property/${purchase.property._id}`);
+    } else {
+      onViewDetails?.(purchase._id);
+    }
+  };
+
   return (
-    <div className="card p-4 hover:shadow-md transition-all duration-200">
+    <div 
+      className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-200 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="flex flex-col sm:flex-row gap-4">
         {/* Image Section */}
-        <div 
-          className="w-full sm:w-32 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer relative group"
-          onClick={() => onViewDetails?.(p._id)}
-        >
-          {img ? (
-            <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+        <div className="w-full sm:w-32 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 relative group">
+          {imageUrl && !imageError ? (
+            <img 
+              src={imageUrl} 
+              alt={purchase.property?.title || 'Property'} 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              onError={handleImageError}
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Building2 className="w-8 h-8 text-gray-300" />
@@ -97,21 +121,18 @@ function PurchaseCard({ p, mode, onAction, onViewDetails }) {
         {/* Content Section */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 flex-wrap">
-            <Link 
-              to={`/properties/${p.property?._id}`} 
-              className="font-semibold text-gray-900 hover:text-primary-600 truncate transition-colors"
-            >
-              {p.property?.title || 'Property'}
-            </Link>
-            {getStatusBadge(p.status)}
+            <h3 className="font-semibold text-gray-900 truncate">
+              {purchase.property?.title || 'Property'}
+            </h3>
+            {getStatusBadge(purchase.status)}
           </div>
 
           {/* Location */}
           <div className="flex items-center gap-1 text-gray-500 text-xs mt-1">
             <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span>{p.property?.location?.city || 'Location not specified'}</span>
-            {p.property?.location?.area && (
-              <span className="text-gray-400">· {p.property.location.area}</span>
+            <span>{purchase.property?.location?.city || 'Location not specified'}</span>
+            {purchase.property?.location?.area && (
+              <span className="text-gray-400">· {purchase.property.location.area}</span>
             )}
           </div>
 
@@ -119,27 +140,31 @@ function PurchaseCard({ p, mode, onAction, onViewDetails }) {
           <div className="flex flex-wrap items-center gap-3 mt-2">
             <div>
               <span className="text-xs text-gray-500">Offer Price</span>
-              <p className="font-bold text-primary-600">₹{p.offerPrice?.toLocaleString('en-IN')}</p>
+              <p className="font-bold text-primary-600">
+                ₹{purchase.offerPrice?.toLocaleString('en-IN') || 'N/A'}
+              </p>
             </div>
             <div className="h-8 w-px bg-gray-200" />
             <div>
               <span className="text-xs text-gray-500">Listed Price</span>
-              <p className="font-semibold text-gray-700">₹{p.property?.price?.toLocaleString('en-IN')}</p>
+              <p className="font-semibold text-gray-700">
+                ₹{purchase.property?.price?.toLocaleString('en-IN') || 'N/A'}
+              </p>
             </div>
-            {p.property?.price && p.offerPrice && (
+            {purchase.property?.price && purchase.offerPrice && (
               <div className="ml-auto">
                 <span className="text-xs text-gray-500">Difference</span>
-                <p className={`font-medium text-sm ${p.offerPrice <= p.property.price ? 'text-green-600' : 'text-red-600'}`}>
-                  {((p.offerPrice - p.property.price) / p.property.price * 100).toFixed(1)}%
+                <p className={`font-medium text-sm ${purchase.offerPrice <= purchase.property.price ? 'text-green-600' : 'text-red-600'}`}>
+                  {((purchase.offerPrice - purchase.property.price) / purchase.property.price * 100).toFixed(1)}%
                 </p>
               </div>
             )}
           </div>
 
           {/* Message */}
-          {p.message && (
+          {purchase.message && (
             <div className="mt-2 p-2 bg-gray-50 rounded-lg">
-              <p className="text-xs text-gray-600 italic">"{p.message}"</p>
+              <p className="text-xs text-gray-600 italic">"{purchase.message}"</p>
             </div>
           )}
 
@@ -148,40 +173,52 @@ function PurchaseCard({ p, mode, onAction, onViewDetails }) {
             <span>{mode === 'sent' ? 'To' : 'From'}: {otherParty?.name || 'Unknown'}</span>
             {otherParty?.phone && <span>· {otherParty.phone}</span>}
             <span className="text-gray-300">|</span>
-            <span className="text-gray-400">Created: {new Date(p.createdAt).toLocaleDateString()}</span>
+            <span className="text-gray-400">Created: {new Date(purchase.createdAt).toLocaleDateString()}</span>
           </div>
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2 mt-3">
-            {mode === 'received' && p.status === 'pending' && (
+            {mode === 'received' && purchase.status === 'pending' && (
               <>
                 <button 
-                  onClick={() => onAction(p._id, 'accepted')} 
-                  className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1 hover:scale-105 transition-transform"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAction(purchase._id, 'accepted');
+                  }} 
+                  className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs flex items-center gap-1 transition-transform hover:scale-105"
                 >
                   <Check className="w-3.5 h-3.5" /> Accept
                 </button>
                 <button 
-                  onClick={() => onAction(p._id, 'rejected')} 
-                  className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1 hover:scale-105 transition-transform"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAction(purchase._id, 'rejected');
+                  }} 
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs flex items-center gap-1 transition-transform hover:scale-105"
                 >
                   <X className="w-3.5 h-3.5" /> Decline
                 </button>
               </>
             )}
-            {mode === 'sent' && p.status === 'pending' && (
+            {mode === 'sent' && purchase.status === 'pending' && (
               <button 
-                onClick={() => onAction(p._id, 'cancelled')} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAction(purchase._id, 'cancelled');
+                }} 
                 className="text-xs text-gray-500 hover:text-red-600 transition-colors flex items-center gap-1"
               >
                 <Ban className="w-3.5 h-3.5" /> Cancel request
               </button>
             )}
+            
+            {/* View Property Button */}
             <button 
-              onClick={() => onViewDetails?.(p._id)}
+              onClick={handleViewDetailsClick}
               className="text-xs text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1 ml-auto"
             >
-              <Eye className="w-3.5 h-3.5" /> View Details
+              <Eye className="w-3.5 h-3.5" /> View Property
+              <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -190,12 +227,12 @@ function PurchaseCard({ p, mode, onAction, onViewDetails }) {
   );
 }
 
-// Filter and Sort Component
+// ─── Filter Bar ─────────────────────────────────────────────────────────
 function FilterBar({ filters, onFilterChange, onReset }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="card p-4">
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
       <div className="flex items-center justify-between">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -264,61 +301,13 @@ function FilterBar({ filters, onFilterChange, onReset }) {
               />
             </div>
           </div>
-
-          {/* Sort */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Sort By</label>
-            <select
-              value={filters.sortBy}
-              onChange={(e) => onFilterChange('sortBy', e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="createdAt">Date</option>
-              <option value="offerPrice">Offer Price</option>
-              <option value="property.price">Listed Price</option>
-            </select>
-          </div>
-
-          {/* Sort Order */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Order</label>
-            <select
-              value={filters.sortOrder}
-              onChange={(e) => onFilterChange('sortOrder', e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="desc">Newest First</option>
-              <option value="asc">Oldest First</option>
-            </select>
-          </div>
-
-          {/* Price Range */}
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Price Range</label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Min"
-                value={filters.minPrice}
-                onChange={(e) => onFilterChange('minPrice', e.target.value)}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-              <input
-                type="number"
-                placeholder="Max"
-                value={filters.maxPrice}
-                onChange={(e) => onFilterChange('maxPrice', e.target.value)}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
-          </div>
         </div>
       )}
     </div>
   );
 }
 
-// Pagination Component
+// ─── Pagination ─────────────────────────────────────────────────────────
 function Pagination({ currentPage, totalPages, onPageChange }) {
   if (totalPages <= 1) return null;
 
@@ -399,14 +388,16 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
   );
 }
 
-// Main Component
+// ─── Main Component ────────────────────────────────────────────────────
 export default function Purchases() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const canReceive = user?.role === 'agent' || user?.role === 'admin';
   const [tab, setTab] = useState('sent');
   const [sent, setSent] = useState([]);
   const [received, setReceived] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -421,20 +412,31 @@ export default function Purchases() {
     maxPrice: '',
   });
 
-  // Load data
+  // ─── Load Data ────────────────────────────────────────────────────────
   const load = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
+    setError(null);
 
     try {
       const [sentRes, receivedRes] = await Promise.all([
         getMyPurchases(),
         canReceive ? getReceivedPurchases() : Promise.resolve({ data: { data: [] } }),
       ]);
-      setSent(sentRes.data.data || []);
-      setReceived(receivedRes.data.data || []);
-    } catch (error) {
-      toast.error('Failed to load purchases');
+      
+      // Handle different response structures
+      const sentData = sentRes?.data?.data || sentRes?.data || sentRes || [];
+      const receivedData = receivedRes?.data?.data || receivedRes?.data || receivedRes || [];
+      
+      setSent(Array.isArray(sentData) ? sentData : []);
+      setReceived(Array.isArray(receivedData) ? receivedData : []);
+    } catch (err) {
+      console.error('Failed to load purchases:', err);
+      const errorMsg = err?.response?.data?.message || err?.message || 'Failed to load purchases';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      setSent([]);
+      setReceived([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -445,18 +447,35 @@ export default function Purchases() {
     load();
   }, []);
 
-  // Handle actions
+  // ─── Handle Actions ───────────────────────────────────────────────────
   const handleAction = async (id, status) => {
     try {
       await updatePurchaseStatus(id, status);
       toast.success(`Request ${status}`);
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update request');
+      const errorMsg = err?.response?.data?.message || err?.message || 'Failed to update request';
+      toast.error(errorMsg);
     }
   };
 
-  // Filter and sort data
+  // ─── Handle View Details ──────────────────────────────────────────────
+  const handleViewDetails = (purchaseId) => {
+    // If you have a purchase detail page:
+    // navigate(`/purchases/${purchaseId}`);
+    
+    // Or find the property and navigate to it
+    const allPurchases = [...sent, ...received];
+    const purchase = allPurchases.find(p => p._id === purchaseId);
+    if (purchase?.property?._id) {
+      navigate(`/property/${purchase.property._id}`);
+    } else {
+      // If no property found, just go to properties list
+      navigate('/properties');
+    }
+  };
+
+  // ─── Filter and Sort Data ─────────────────────────────────────────────
   const filterAndSortData = (data) => {
     let filtered = [...data];
 
@@ -521,13 +540,13 @@ export default function Purchases() {
     return filtered;
   };
 
-  // Get current list
+  // ─── Get Current List ──────────────────────────────────────────────────
   const list = useMemo(() => {
     const data = tab === 'sent' ? sent : received;
     return filterAndSortData(data);
   }, [tab, sent, received, filters]);
 
-  // Pagination
+  // ─── Pagination ────────────────────────────────────────────────────────
   const totalPages = Math.ceil(list.length / itemsPerPage);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -535,7 +554,7 @@ export default function Purchases() {
     return list.slice(start, end);
   }, [list, currentPage, itemsPerPage]);
 
-  // Reset filters
+  // ─── Reset Filters ────────────────────────────────────────────────────
   const resetFilters = () => {
     setFilters({
       search: '',
@@ -550,13 +569,13 @@ export default function Purchases() {
     setCurrentPage(1);
   };
 
-  // Handle filter change
+  // ─── Handle Filter Change ─────────────────────────────────────────────
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
 
-  // Calculate analytics
+  // ─── Calculate Analytics ──────────────────────────────────────────────
   const analytics = useMemo(() => {
     const activeData = tab === 'sent' ? sent : received;
     const total = activeData.length;
@@ -568,10 +587,6 @@ export default function Purchases() {
     const totalOfferValue = activeData.reduce((sum, p) => sum + (p.offerPrice || 0), 0);
     const avgOfferValue = total > 0 ? totalOfferValue / total : 0;
     
-    const acceptedValue = activeData
-      .filter(p => p.status === 'accepted')
-      .reduce((sum, p) => sum + (p.offerPrice || 0), 0);
-    
     const conversionRate = total > 0 ? (accepted / total) * 100 : 0;
 
     return {
@@ -582,17 +597,11 @@ export default function Purchases() {
       cancelled,
       avgOfferValue,
       totalOfferValue,
-      acceptedValue,
       conversionRate,
     };
   }, [tab, sent, received]);
 
-  // Handle view details
-  const handleViewDetails = (id) => {
-    // Navigate to detail page or open modal
-    console.log('View details for purchase:', id);
-  };
-
+  // ─── Render ───────────────────────────────────────────────────────────
   return (
     <div className="max-w-6xl mx-auto space-y-6 p-4">
       {/* Header */}
@@ -609,15 +618,32 @@ export default function Purchases() {
         <button
           onClick={() => load(true)}
           disabled={refreshing}
-          className="btn-secondary text-sm py-2 px-4 flex items-center gap-2 disabled:opacity-50"
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm flex items-center gap-2 disabled:opacity-50 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">Error loading purchases</p>
+            <p className="text-sm">{error}</p>
+            <button 
+              onClick={() => load()} 
+              className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Analytics Cards */}
-      {!loading && (
+      {!loading && !error && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <AnalyticsCard
             title="Total Requests"
@@ -653,7 +679,7 @@ export default function Purchases() {
       )}
 
       {/* Tabs */}
-      {canReceive && (
+      {canReceive && !error && (
         <div className="flex gap-2 border-b border-gray-200">
           <button
             onClick={() => { setTab('sent'); setCurrentPage(1); }}
@@ -679,14 +705,16 @@ export default function Purchases() {
       )}
 
       {/* Filters */}
-      <FilterBar
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onReset={resetFilters}
-      />
+      {!error && (
+        <FilterBar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onReset={resetFilters}
+        />
+      )}
 
       {/* Results Count */}
-      {!loading && (
+      {!loading && !error && (
         <div className="flex items-center justify-between text-sm text-gray-500">
           <span>Showing {paginatedData.length} of {list.length} results</span>
           <span>{tab === 'sent' ? 'Sent' : 'Received'} offers</span>
@@ -701,8 +729,14 @@ export default function Purchases() {
             <p className="mt-4 text-gray-500">Loading your purchases...</p>
           </div>
         </div>
+      ) : error ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900">Unable to load purchases</h3>
+          <p className="text-sm text-gray-500 mt-1">Please try again later</p>
+        </div>
       ) : paginatedData.length === 0 ? (
-        <div className="card p-12 text-center">
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <ShoppingBag className="w-12 h-12 mx-auto mb-4 text-gray-300" />
           <h3 className="text-lg font-medium text-gray-900">
             No {tab === 'sent' ? 'offers sent' : 'offers received'} yet
@@ -713,7 +747,7 @@ export default function Purchases() {
               : 'When buyers make offers on your properties, they\'ll appear here.'}
           </p>
           {tab === 'sent' && (
-            <Link to="/properties" className="btn-primary mt-4 inline-block">
+            <Link to="/properties" className="inline-block mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors">
               Browse Properties
             </Link>
           )}
@@ -724,7 +758,7 @@ export default function Purchases() {
             {paginatedData.map((p) => (
               <PurchaseCard
                 key={p._id}
-                p={p}
+                purchase={p}
                 mode={tab}
                 onAction={handleAction}
                 onViewDetails={handleViewDetails}

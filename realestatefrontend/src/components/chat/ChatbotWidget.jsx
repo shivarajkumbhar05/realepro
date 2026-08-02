@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { sendChatMessage } from '../../api/chatbot';
 import { useAuth } from '../../context/AuthContext';
+import { resolveImageUrl } from '../../utils/imageUtils';
 
 const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://realepro.onrender.com';
 
@@ -59,7 +60,7 @@ const SUGGESTIONS_BY_ROLE = {
 
 // Enhanced Property Card
 function PropertyMiniCard({ p }) {
-  const img = p.images?.[0] ? `${BASE}${p.images[0].path}` : null;
+  const img = p.images?.[0] ? resolveImageUrl(p.images[0]) : null;
   
   return (
     <Link

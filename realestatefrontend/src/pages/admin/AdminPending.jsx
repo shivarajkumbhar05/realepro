@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPendingProperties } from '../../api/admin';
 import { approveProperty, deleteProperty } from '../../api/properties';
+import { resolveImageUrl } from '../../utils/imageUtils';
 import { 
   Building2, CheckCircle, Trash2, Eye, MapPin, Clock, 
   Users, Calendar, AlertCircle, Sparkles, Shield, 
@@ -10,8 +11,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://realepro.onrender.com';
 
 export default function AdminPending() {
   const [properties, setProperties] = useState([]);
@@ -257,7 +256,7 @@ export default function AdminPending() {
         <AnimatePresence>
           <div className="grid gap-4">
             {filteredProperties.map((p, index) => {
-              const img = p.images?.[0] ? `${BASE}${p.images[0].path}` : null;
+              const img = p.images?.[0] ? resolveImageUrl(p.images[0]) : null;
               return (
                 <motion.div
                   key={p._id}

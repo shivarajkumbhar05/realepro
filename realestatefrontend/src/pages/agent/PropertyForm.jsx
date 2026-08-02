@@ -12,8 +12,6 @@ const FURNISHED = ['unfurnished', 'semi-furnished', 'fully-furnished'];
 const AREA_UNITS = ['sqft', 'sqmt', 'acre', 'bigha'];
 const COMMON_AMENITIES = ['Swimming Pool', 'Gym', 'Lift', 'Power Backup', 'Security', 'Garden', 'Parking', 'Club House', 'Play Area', 'CCTV'];
 
-const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://realepro.onrender.com';
-
 export default function PropertyForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
@@ -260,7 +258,7 @@ export default function PropertyForm() {
             <div className="flex flex-wrap gap-2">
               {existingImages.map(img => (
                 <div key={img.filename} className="relative w-20 h-20 rounded-lg overflow-hidden">
-                  <img src={`${BASE}${img.path}`} alt="" className="w-full h-full object-cover" />
+                  <img src={resolveImageUrl(img)} alt="" className="w-full h-full object-cover" />
                 </div>
               ))}
               <p className="text-xs text-gray-500 w-full">Existing images. New uploads will be added.</p>
