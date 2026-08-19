@@ -1,6 +1,7 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider } from './context/AuthContext';
 import { FavoritesProvider } from './context/FavoritesContext';
 import { CompareProvider } from './context/CompareContext';
@@ -76,6 +77,7 @@ export default function App() {
                 },
               }} 
             />
+            <Analytics />
             
             <Routes>
               {/* Public Routes - Only accessible when NOT logged in */}
