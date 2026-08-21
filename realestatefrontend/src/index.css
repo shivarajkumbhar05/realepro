@@ -95,6 +95,63 @@ select {
   --theme-name: 'Rose';
 }
 
+/* Dashboard role palettes. These scoped rules re-skin shared dashboard
+   surfaces while keeping the three portal identities distinct. */
+.dashboard-shell.dashboard-admin {
+  --dashboard-main: #8f1838;
+  --dashboard-dark: #64102b;
+  --dashboard-soft: #fff1f2;
+  --dashboard-accent: #f59e0b;
+}
+
+.dashboard-shell.dashboard-agent {
+  --dashboard-main: #075985;
+  --dashboard-dark: #164e63;
+  --dashboard-soft: #ecfeff;
+  --dashboard-accent: #22d3ee;
+}
+
+.dashboard-shell.dashboard-buyer {
+  --dashboard-main: #047857;
+  --dashboard-dark: #065f46;
+  --dashboard-soft: #ecfdf5;
+  --dashboard-accent: #fbbf24;
+}
+
+.dashboard-shell .dashboard-welcome {
+  background: linear-gradient(135deg, var(--dashboard-dark), var(--dashboard-main));
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--dashboard-main) 30%, transparent);
+}
+
+.dashboard-shell .dashboard-featured {
+  background: linear-gradient(135deg, var(--dashboard-main), var(--dashboard-dark));
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--dashboard-main) 30%, transparent);
+}
+
+.dashboard-shell .dashboard-stat {
+  border-color: color-mix(in srgb, var(--dashboard-main) 18%, white);
+}
+
+.dashboard-shell .dashboard-stat-icon {
+  background: linear-gradient(135deg, var(--dashboard-main), var(--dashboard-dark));
+}
+
+.dashboard-shell .dashboard-stat-value {
+  background-image: linear-gradient(90deg, var(--dashboard-main), var(--dashboard-dark));
+}
+
+.dashboard-shell .text-indigo-600 {
+  color: var(--dashboard-main);
+}
+
+.dashboard-shell .bg-indigo-50 {
+  background-color: var(--dashboard-soft);
+}
+
+.dashboard-shell .text-indigo-100 {
+  color: color-mix(in srgb, white 82%, var(--dashboard-main));
+}
+
 /* Leaflet map polish */
 .leaflet-container {
   font-family: 'Inter', system-ui, sans-serif;

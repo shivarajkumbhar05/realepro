@@ -142,14 +142,14 @@ function StatCard({ icon: Icon, label, value, color = 'primary', trend, trendLab
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 border border-white/20 hover:border-indigo-200/50 hover:-translate-y-1"
+      className="dashboard-stat group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 border border-white/20 hover:border-indigo-200/50 hover:-translate-y-1"
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${colorMap[color]} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}></div>
       <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-indigo-50 to-transparent rounded-full -translate-y-24 translate-x-24 opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
 
       <div className="relative flex items-start justify-between">
         <div className="flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colorMap[color]} flex items-center justify-center shadow-lg ${shadowColor} group-hover:scale-110 transition-transform duration-300 relative`}>
+          <div className={`dashboard-stat-icon w-14 h-14 rounded-2xl bg-gradient-to-br ${colorMap[color]} flex items-center justify-center shadow-lg ${shadowColor} group-hover:scale-110 transition-transform duration-300 relative`}>
             <Icon className="w-7 h-7 text-white" />
             {subtitle && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse"></span>
@@ -158,7 +158,7 @@ function StatCard({ icon: Icon, label, value, color = 'primary', trend, trendLab
           <div>
             <p className="text-sm font-medium text-gray-500">{label}</p>
             <div className="flex items-end gap-3">
-              <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <p className="dashboard-stat-value text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 {value ?? '—'}
               </p>
               {trend && (
@@ -361,6 +361,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [totalAgents, setTotalAgents] = useState(0);
   const [showWelcome, setShowWelcome] = useState(true);
+  const dashboardRoleClass = isAdmin ? 'dashboard-admin' : isAgent ? 'dashboard-agent' : 'dashboard-buyer';
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -414,7 +415,7 @@ export default function Dashboard() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-3xl p-8 text-white shadow-2xl shadow-indigo-500/20"
+      className="dashboard-welcome relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-3xl p-8 text-white shadow-2xl shadow-indigo-500/20"
     >
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-24 translate-x-24"></div>
@@ -488,7 +489,7 @@ export default function Dashboard() {
     ];
 
     return (
-      <div className="space-y-8 pb-8">
+      <div className={`${dashboardRoleClass} dashboard-shell space-y-8 pb-8`}>
         <WelcomeSection />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -675,7 +676,7 @@ export default function Dashboard() {
     ];
 
     return (
-      <div className="space-y-8 pb-8">
+      <div className={`${dashboardRoleClass} dashboard-shell space-y-8 pb-8`}>
         <WelcomeSection />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -742,7 +743,7 @@ export default function Dashboard() {
   // ─── Buyer Dashboard ──────────────────────────────────────────────
   if (isBuyer) {
     return (
-      <div className="space-y-8 pb-8">
+      <div className={`${dashboardRoleClass} dashboard-shell space-y-8 pb-8`}>
         <WelcomeSection />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -753,7 +754,7 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-600 rounded-3xl p-8 text-white shadow-2xl shadow-emerald-500/20"
+          className="dashboard-featured relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-600 rounded-3xl p-8 text-white shadow-2xl shadow-emerald-500/20"
         >
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
