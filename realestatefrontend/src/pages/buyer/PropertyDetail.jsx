@@ -508,7 +508,7 @@ export default function PropertyDetail() {
   // ─── Submit Offer ─────────────────────────────────────────────────────
   const handleSubmitOffer = async (offerData) => {
     try {
-      const response = await createPurchase(offerData);
+      const response = await createPurchase(offerData.propertyId, offerData);
       console.log('Offer submitted:', response);
       return response;
     } catch (error) {
