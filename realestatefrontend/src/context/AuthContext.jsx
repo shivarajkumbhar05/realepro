@@ -3,11 +3,22 @@ import * as authApi from "../api/auth";
 
 const AuthContext = createContext(null);
 
+function readStoredUser() {
+  const storedUser = localStorage.getItem("re_user") || localStorage.getItem("user");
+
+  if (!storedUser) return null;
+
+  try {
+    return JSON.parse(storedUser);
+  } catch {
+    localStorage.removeItem("re_user");
+    localStorage.removeItem("user");
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem("re_user") || localStorage.getItem("user");
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
+  const [user, setUser] = useState(readStoredUser);
 
   const [loading, setLoading] = useState(true);
 

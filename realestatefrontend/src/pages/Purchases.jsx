@@ -80,7 +80,7 @@ function PurchaseCard({ purchase, mode, onAction, onViewDetails }) {
 
   const handleCardClick = () => {
     if (purchase.property?._id) {
-      navigate(`/property/${purchase.property._id}`);
+      navigate(`/properties/${purchase.property._id}`);
     } else {
       onViewDetails?.(purchase._id);
     }
@@ -89,7 +89,7 @@ function PurchaseCard({ purchase, mode, onAction, onViewDetails }) {
   const handleViewDetailsClick = (e) => {
     e.stopPropagation();
     if (purchase.property?._id) {
-      navigate(`/property/${purchase.property._id}`);
+      navigate(`/properties/${purchase.property._id}`);
     } else {
       onViewDetails?.(purchase._id);
     }
@@ -468,7 +468,7 @@ export default function Purchases() {
     const allPurchases = [...sent, ...received];
     const purchase = allPurchases.find(p => p._id === purchaseId);
     if (purchase?.property?._id) {
-      navigate(`/property/${purchase.property._id}`);
+      navigate(`/properties/${purchase.property._id}`);
     } else {
       // If no property found, just go to properties list
       navigate('/properties');

@@ -25,6 +25,7 @@ import AuthFooter from "../../components/layout/AuthFooter";
 import { motion } from "framer-motion";
 import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, googleProvider } from "../../firebase";
+import { forgotPassword as requestPasswordReset } from "../../api/auth";
 
 const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
 
@@ -96,7 +97,7 @@ export default function Login() {
       return;
     }
     try {
-      const { data } = await axios.post(`${API}/forgot-password`, { email });
+      const { data } = await requestPasswordReset(email);
       toast.success(data.message);
       navigate("/forgot-password", { state: { email } });
     } catch (error) {

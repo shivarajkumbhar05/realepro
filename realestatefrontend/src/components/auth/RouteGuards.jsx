@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useEffect, useState } from 'react';
 import { Loader2, Shield, AlertCircle, Home } from 'lucide-react';
@@ -19,6 +19,7 @@ const RouteLoading = () => (
 // Access Denied Component
 const AccessDenied = ({ role }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-red-50 px-4">
@@ -33,14 +34,14 @@ const AccessDenied = ({ role }) => {
         </p>
         <div className="space-y-3">
           <button
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => navigate('/dashboard', { replace: true })}
             className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 flex items-center justify-center gap-2"
           >
             <Home className="w-5 h-5" />
             Go to Dashboard
           </button>
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/', { replace: true })}
             className="w-full px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-all duration-300"
           >
             Return to Home

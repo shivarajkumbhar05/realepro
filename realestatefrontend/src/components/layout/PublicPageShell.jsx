@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, ArrowLeft, Sparkles, Home, ChevronRight, Mail, Phone, MapPin, Shield, Star, Users } from 'lucide-react';
+import { Building2, ArrowLeft, Home, ChevronRight, Mail, Phone, MapPin, Shield, Star, Users } from 'lucide-react';
 import AuthFooter from './AuthFooter';
 import { motion } from 'framer-motion';
 
@@ -7,65 +7,36 @@ export default function PublicPageShell({ title, subtitle, children }) {
   const navigate = useNavigate();
 
   return (
-    <div className="theme-guest min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white relative overflow-hidden">
-      {/* ─── Background Decorations ──────────────────────────────────── */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-200/10 rounded-full blur-3xl"></div>
-        
-        {/* Floating particles */}
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-primary-400/20 rounded-full"
-            style={{
-              top: `${10 + Math.random() * 80}%`,
-              left: `${10 + Math.random() * 80}%`,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              x: [0, 20, 0],
-            }}
-            transition={{
-              duration: 4 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 3,
-            }}
-          />
-        ))}
-      </div>
+    <div className="theme-guest min-h-screen bg-[#f6f8fb] relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top_right,_rgba(14,141,233,0.10),_transparent_60%)] pointer-events-none" />
 
       {/* ─── Header ────────────────────────────────────────────────────── */}
-      <header className="relative border-b border-gray-200/60 bg-white/80 backdrop-blur-xl sticky top-0 z-20 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <header className="relative border-b border-gray-200 bg-white/90 backdrop-blur sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
           <Link 
             to="/" 
-            className="flex items-center gap-2.5 group transition-all duration-300 hover:scale-[1.02]"
+            className="flex items-center gap-2.5 group"
           >
-            <div className="relative w-9 h-9 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30 transition-transform group-hover:scale-110">
+            <div className="relative w-9 h-9 bg-primary-700 rounded-lg flex items-center justify-center shadow-md transition-transform group-hover:scale-105">
               <Building2 className="w-5 h-5 text-white" />
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white animate-pulse"></div>
             </div>
             <div>
-              <span className="font-bold text-xl text-gray-900">PropEstate</span>
-              <span className="hidden sm:inline-block ml-2 text-xs font-medium text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
-                Trusted Platform
-              </span>
+              <span className="font-extrabold tracking-tight text-xl text-gray-900">PropEstate</span>
             </div>
           </Link>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all duration-200"
+              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
             >
               <Home className="w-4 h-4" />
               Home
             </button>
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md border border-gray-200/60"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-white text-gray-700 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors border border-gray-200"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back</span>
@@ -75,29 +46,28 @@ export default function PublicPageShell({ title, subtitle, children }) {
       </header>
 
       {/* ─── Main Content ────────────────────────────────────────────── */}
-      <main className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <main className="relative max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-gray-100/80 overflow-hidden"
+          className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
         >
           {/* ─── Decorative Header Bar ────────────────────────────────── */}
-          <div className="h-1.5 bg-gradient-to-r from-primary-500 via-indigo-500 to-purple-500"></div>
+          <div className="h-1 bg-primary-700"></div>
 
           {/* ─── Content Area ──────────────────────────────────────────── */}
-          <div className="p-6 sm:p-10">
+          <div className="p-6 sm:p-10 lg:p-12">
             {/* ─── Title Section ───────────────────────────────────────── */}
             <div className="mb-8">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-5 h-5 text-primary-500 animate-pulse" />
-                    <span className="text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
-                      Information
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary-700">
+                      PropEstate
                     </span>
                   </div>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 leading-tight">
                     {title}
                   </h1>
                   {subtitle && (
@@ -106,7 +76,7 @@ export default function PublicPageShell({ title, subtitle, children }) {
                     </p>
                   )}
                 </div>
-                <div className="hidden lg:flex items-center gap-2 text-xs text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full">
+                <div className="hidden lg:flex items-center gap-2 text-xs font-semibold text-gray-500 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
                   <Shield className="w-3.5 h-3.5 text-emerald-500" />
                   <span>Verified</span>
                   <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
@@ -124,7 +94,7 @@ export default function PublicPageShell({ title, subtitle, children }) {
             </div>
 
             {/* ─── Divider ────────────────────────────────────────────── */}
-            <div className="w-full h-px bg-gradient-to-r from-gray-200 via-gray-100 to-transparent mb-8"></div>
+            <div className="w-full h-px bg-gray-200 mb-8"></div>
 
             {/* ─── Children Content ────────────────────────────────────── */}
             <div className="prose prose-slate max-w-none text-gray-600 space-y-6">

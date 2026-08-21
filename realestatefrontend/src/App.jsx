@@ -24,6 +24,7 @@ import Compare from './pages/buyer/Compare';
 // Agent Pages
 import PropertyForm from './pages/agent/PropertyForm';
 import MyListings from './pages/agent/MyListings';
+import AgentAnalytics from './pages/agent/AgentAnalytics';
 
 // Admin Pages
 import AdminUsers from './pages/admin/AdminUsers';
@@ -33,6 +34,7 @@ import AdminAnalytics from './pages/admin/AdminAnalytics';
 // Shared Pages
 import Profile from './pages/Profile';
 import Purchases from './pages/Purchases';
+import Settings from './pages/Settings';
 
 // Public Pages
 import About from './pages/public/About';
@@ -98,6 +100,7 @@ export default function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
                 <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
+                <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
                 <Route path="/purchases" element={<AppLayout><Purchases /></AppLayout>} />
                 
                 {/* Buyer Routes */}
@@ -111,6 +114,7 @@ export default function App() {
                   <Route path="/agent/my-listings" element={<AppLayout><MyListings /></AppLayout>} />
                   <Route path="/agent/my-listings/new" element={<AppLayout><PropertyForm /></AppLayout>} />
                   <Route path="/agent/my-listings/:id/edit" element={<AppLayout><PropertyForm /></AppLayout>} />
+                  <Route path="/agent/analytics" element={<AppLayout><AgentAnalytics /></AppLayout>} />
                 </Route>
 
                 {/* Admin Routes - Require admin role */}

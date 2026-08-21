@@ -91,7 +91,7 @@ function PropertyCard({ property, isAdmin, isAgent, user }) {
           <span className="text-lg font-bold text-primary-600">
             ₹{property.price?.toLocaleString()}
           </span>
-          <Link to={`/property/${property._id}`} className="text-xs btn-secondary py-1 px-3">
+          <Link to={`/properties/${property._id}`} className="text-xs btn-secondary py-1 px-3">
             View
           </Link>
         </div>

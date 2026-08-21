@@ -1,76 +1,103 @@
-// src/context/CompareContext.js
-import { createContext, useContext, useState, useEffect } from 'react';
+// src/context/CompareContext.jsx
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
-const CompareContext = createContext();
+const CompareContext = createContext(undefined);
 
-export const CompareProvider = ({ children }) => {
-  const [compareList, setCompareList] = useState([]);
+const STORAGE_KEY = 'compareProperties';
+const MAX_COMPARE = 4; // adjust as needed
 
-  // Load compare list from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('compareList');
-    if (saved) {
-      try {
-        setCompareList(JSON.parse(saved));
-      } catch {
-        setCompareList([]);
-      }
+export function CompareProvider({ children }) {
+  const [compareList, setCompareList] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (err) {
+      console.error('Error reading compare list from storage:', err);
+      return [];
     }
-  }, []);
+  });
 
-  // Save to localStorage whenever compareList changes
+  // Persist to localStorage whenever the list changes
   useEffect(() => {
-    localStorage.setItem('compareList', JSON.stringify(compareList));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(compareList));
+    } catch (err) {
+      console.error('Error saving compare list to storage:', err);
+    }
   }, [compareList]);
 
-  const addToCompare = (property) => {
-    // Check if already in compare list
-    if (compareList.some(p => p._id === property._id)) {
-      toast.info('Property already in comparison list');
-      return;
-    }
+  const isComparing = useCallback(
+    (propertyId) => compareList.some((p) => p._id === propertyId),
+    [compareList]
+  );
 
-    // Check max limit (usually 4)
-    if (compareList.length >= 4) {
-      toast.error('You can compare up to 4 properties at a time');
-      return;
-    }
+  const addToCompare = useCallback(
+    (property) => {
+      setCompareList((prev) => {
+        if (prev.some((p) => p._id === property._id)) return prev;
+        if (prev.length >= MAX_COMPARE) {
+          toast.error(`You can only compare up to ${MAX_COMPARE} properties`);
+          return prev;
+        }
+        toast.success('Added to compare');
+        return [...prev, property];
+      });
+    },
+    []
+  );
 
-    setCompareList([...compareList, property]);
-    toast.success('Property added to comparison');
-  };
+  const removeFromCompare = useCallback((propertyId) => {
+    setCompareList((prev) => prev.filter((p) => p._id !== propertyId));
+    toast.success('Removed from compare');
+  }, []);
 
-  const removeFromCompare = (propertyId) => {
-    setCompareList(compareList.filter(p => p._id !== propertyId));
-    toast.success('Property removed from comparison');
-  };
+  const toggleCompare = useCallback(
+    (property) => {
+      const id = property?._id ?? property; // supports passing either the object or just an id
+      setCompareList((prev) => {
+        const exists = prev.some((p) => p._id === id);
+        if (exists) {
+          toast.success('Removed from compare');
+          return prev.filter((p) => p._id !== id);
+        }
+        if (prev.length >= MAX_COMPARE) {
+          toast.error(`You can only compare up to ${MAX_COMPARE} properties`);
+          return prev;
+        }
+        toast.success('Added to compare');
+        return [...prev, typeof property === 'object' ? property : { _id: id }];
+      });
+    },
+    []
+  );
 
-  const clearCompare = () => {
+  const clearCompare = useCallback(() => {
     setCompareList([]);
-  };
+  }, []);
 
-  const isComparing = (propertyId) => {
-    return compareList.some(p => p._id === propertyId);
+  const value = {
+    compareList,
+    isComparing,
+    addToCompare,
+    removeFromCompare,
+    toggleCompare,
+    clearCompare,
+    compareCount: compareList.length,
+    maxCompare: MAX_COMPARE,
   };
 
   return (
-    <CompareContext.Provider value={{
-      compareList,
-      addToCompare,
-      removeFromCompare,
-      clearCompare,
-      isComparing,
-    }}>
+    <CompareContext.Provider value={value}>
       {children}
     </CompareContext.Provider>
   );
-};
+}
 
-export const useCompare = () => {
+export function useCompare() {
   const context = useContext(CompareContext);
-  if (!context) {
-    throw new Error('useCompare must be used within CompareProvider');
+  if (context === undefined) {
+    throw new Error('useCompare must be used within a CompareProvider');
   }
   return context;
-};
+}

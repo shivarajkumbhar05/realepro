@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import axios from "axios";
+import { resetPassword } from "../../api/auth";
 import {
   Building2,
   Eye,
@@ -14,15 +14,12 @@ import {
   ArrowLeft,
   Sparkles,
   Fingerprint,
-  Clock,
   AlertCircle,
   Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import AuthFooter from "../../components/layout/AuthFooter";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API = (import.meta.env.VITE_API_URL || "https://realepro.onrender.com/api") + "/auth";
 
 // Password strength indicator
 const PasswordStrength = ({ password }) => {
@@ -157,10 +154,6 @@ export default function ForgotPassword() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [password, setPassword] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const [timer, setTimer] = useState(0);
 
   const {
     register,
@@ -179,13 +172,10 @@ export default function ForgotPassword() {
   const onSubmit = async (formData) => {
     try {
       setLoading(true);
-      const { data } = await axios.post(
-        `${API}/reset-password`,
-        {
-          email: formData.email,
-          password: formData.password,
-        }
-      );
+      const { data } = await resetPassword({
+        email: formData.email,
+        password: formData.password,
+      });
       
       setSuccess(true);
       toast.success(data.message || "Password reset successful!");
@@ -206,35 +196,21 @@ export default function ForgotPassword() {
     }
   };
 
-  const handleEmailCheck = async () => {
-    // Simulate email verification
-    setEmailSent(true);
-    toast.success("Verification email sent successfully!");
-    setTimer(60);
-  };
-
-  useEffect(() => {
-    if (timer > 0) {
-      const interval = setInterval(() => setTimer(timer - 1), 1000);
-      return () => clearInterval(interval);
-    }
-  }, [timer]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#1a2332] to-[#2d1b69] flex items-center justify-center px-4 py-10 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4 py-10 relative overflow-hidden">
       
-      {/* Enhanced Background Elements */}
+      {/* Enhanced Background Elements - Light Mode */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/5 rounded-full animate-spin-slow"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-white/5 rounded-full animate-spin-slow-reverse"></div>
+        <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-gray-200/50 rounded-full animate-spin-slow"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-gray-200/50 rounded-full animate-spin-slow-reverse"></div>
         
-        {/* Floating particles */}
+        {/* Floating particles - Light Mode */}
         {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 bg-white/10 rounded-full"
+            className="absolute w-1 h-1 bg-gray-300/50 rounded-full"
             initial={{
               x: Math.random() * window.innerWidth,
               y: Math.random() * window.innerHeight,
@@ -262,7 +238,7 @@ export default function ForgotPassword() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-md relative z-10"
       >
-        {/* Enhanced Header */}
+        {/* Enhanced Header - Light Mode */}
         <div className="text-center mb-8">
           <motion.div
             whileHover={{ scale: 1.1, rotate: 5 }}
@@ -282,7 +258,7 @@ export default function ForgotPassword() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-4xl font-bold text-white tracking-tight"
+            className="text-4xl font-bold text-gray-900 tracking-tight"
           >
             Reset Password
           </motion.h1>
@@ -290,22 +266,22 @@ export default function ForgotPassword() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-blue-200/80 mt-2 text-sm"
+            className="text-gray-500 mt-2 text-sm"
           >
             Enter your email and new password to reset
           </motion.p>
         </div>
 
-        {/* Enhanced Card */}
+        {/* Enhanced Card - Light Mode */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/30 p-8 md:p-10 border border-white/10"
+          className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-gray-200/70 p-8 md:p-10 border border-gray-100"
         >
           <AnimatePresence mode="wait">
             {success ? (
-              // Enhanced Success State
+              // Enhanced Success State - Light Mode
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -318,7 +294,7 @@ export default function ForgotPassword() {
                   transition={{ type: "spring", stiffness: 200 }}
                   className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-500/20 mb-6 relative"
                 >
-                  <CheckCircle className="w-12 h-12 text-green-400" />
+                  <CheckCircle className="w-12 h-12 text-green-500" />
                   <motion.div
                     className="absolute inset-0 rounded-full border-2 border-green-400/30"
                     animate={{
@@ -331,17 +307,17 @@ export default function ForgotPassword() {
                     }}
                   />
                 </motion.div>
-                <h3 className="text-2xl font-bold text-white mb-2">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
                   Password Reset Successfully!
                 </h3>
-                <p className="text-blue-200/80 mb-6">
+                <p className="text-gray-500 mb-6">
                   Your password has been reset. Redirecting to login...
                 </p>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/login")}
-                  className="text-blue-400 hover:text-blue-300 font-semibold flex items-center justify-center gap-2 mx-auto transition-colors"
+                  className="text-blue-600 hover:text-blue-700 font-semibold flex items-center justify-center gap-2 mx-auto transition-colors"
                 >
                   <ArrowLeft size={18} />
                   Back to Login
@@ -355,17 +331,17 @@ export default function ForgotPassword() {
                 onSubmit={handleSubmit(onSubmit)}
                 className="space-y-6"
               >
-                {/* Email Input with Verification */}
+                {/* Email Input with Verification - Light Mode */}
                 <div>
-                  <label className="block text-sm font-semibold text-white/90 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Email Address
                   </label>
                   <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-blue-400 transition-colors" size={18} />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <input
                       type="email"
                       placeholder="Enter your registered email"
-                      className="w-full h-12 pl-11 pr-4 rounded-xl bg-white/5 border border-white/10 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all duration-300 text-white placeholder:text-white/30"
+                      className="w-full h-12 pl-11 pr-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400"
                       {...register("email", {
                         required: "Email is required",
                         pattern: {
@@ -381,7 +357,7 @@ export default function ForgotPassword() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="text-red-400 text-sm mt-1.5 flex items-center gap-1"
+                        className="text-red-500 text-sm mt-1.5 flex items-center gap-1"
                       >
                         <AlertCircle size={14} />
                         {errors.email.message}
@@ -390,17 +366,17 @@ export default function ForgotPassword() {
                   </AnimatePresence>
                 </div>
 
-                {/* New Password with Strength Indicator */}
+                {/* New Password with Strength Indicator - Light Mode */}
                 <div>
-                  <label className="block text-sm font-semibold text-white/90 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     New Password
                   </label>
                   <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-blue-400 transition-colors" size={18} />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a strong password"
-                      className={`w-full h-12 pl-11 pr-12 rounded-xl bg-white/5 border border-white/10 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all duration-300 text-white placeholder:text-white/30 ${
+                      className={`w-full h-12 pl-11 pr-12 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400 ${
                         watchedPassword && watchedPassword.length >= 8 ? "border-green-500/50" : ""
                       }`}
                       {...register("password", {
@@ -414,14 +390,11 @@ export default function ForgotPassword() {
                           message: "Must contain uppercase, lowercase and number",
                         },
                       })}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -440,7 +413,7 @@ export default function ForgotPassword() {
                     <motion.p
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-red-400 text-sm mt-1.5 flex items-center gap-1"
+                      className="text-red-500 text-sm mt-1.5 flex items-center gap-1"
                     >
                       <AlertCircle size={14} />
                       {errors.password.message}
@@ -448,17 +421,17 @@ export default function ForgotPassword() {
                   )}
                 </div>
 
-                {/* Confirm Password */}
+                {/* Confirm Password - Light Mode */}
                 <div>
-                  <label className="block text-sm font-semibold text-white/90 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Confirm Password
                   </label>
                   <div className="relative group">
-                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-blue-400 transition-colors" size={18} />
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={18} />
                     <input
                       type={showConfirm ? "text" : "password"}
                       placeholder="Re-enter your password"
-                      className="w-full h-12 pl-11 pr-12 rounded-xl bg-white/5 border border-white/10 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all duration-300 text-white placeholder:text-white/30"
+                      className="w-full h-12 pl-11 pr-12 rounded-xl bg-gray-50 border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-900 placeholder:text-gray-400"
                       {...register("confirmPassword", {
                         required: "Confirm your password",
                         validate: (value) =>
@@ -468,7 +441,7 @@ export default function ForgotPassword() {
                     <button
                       type="button"
                       onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -477,7 +450,7 @@ export default function ForgotPassword() {
                     <motion.p
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-red-400 text-sm mt-1.5 flex items-center gap-1"
+                      className="text-red-500 text-sm mt-1.5 flex items-center gap-1"
                     >
                       <AlertCircle size={14} />
                       {errors.confirmPassword.message}
@@ -485,7 +458,7 @@ export default function ForgotPassword() {
                   )}
                 </div>
 
-                {/* Enhanced Reset Button */}
+                {/* Enhanced Reset Button - Light Mode */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -512,40 +485,40 @@ export default function ForgotPassword() {
                   )}
                 </motion.button>
 
-                {/* Divider */}
+                {/* Divider - Light Mode */}
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-white/10"></div>
+                    <div className="w-full border-t border-gray-200"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-transparent text-white/40">or</span>
+                    <span className="px-4 bg-transparent text-gray-400">or</span>
                   </div>
                 </div>
 
-                {/* Enhanced Security Note */}
+                {/* Enhanced Security Note - Light Mode */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="bg-blue-500/10 backdrop-blur-sm rounded-xl p-4 border border-blue-500/20"
+                  className="bg-blue-50 rounded-xl p-4 border border-blue-100"
                 >
                   <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm text-white font-medium">
+                      <p className="text-sm text-gray-800 font-medium">
                         Security Notice
                       </p>
-                      <p className="text-sm text-blue-200/60">
+                      <p className="text-sm text-gray-500">
                         For your security, use a strong password you haven't used before.
                       </p>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Back to Login */}
+                {/* Back to Login - Light Mode */}
                 <Link
                   to="/login"
-                  className="block text-center text-sm text-white/40 hover:text-white/60 font-medium transition-colors flex items-center justify-center gap-2"
+                  className="block text-center text-sm text-gray-400 hover:text-gray-600 font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <ArrowLeft size={16} />
                   Back to Login
@@ -555,7 +528,7 @@ export default function ForgotPassword() {
           </AnimatePresence>
         </motion.div>
         
-        <AuthFooter dark />
+        <AuthFooter />
       </motion.div>
     </div>
   );

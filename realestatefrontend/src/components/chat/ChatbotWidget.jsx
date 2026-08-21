@@ -26,7 +26,10 @@ import {
   Star,
   TrendingUp,
   Shield,
-  Zap
+  Zap,
+  Menu,
+  HelpCircle,
+  Paperclip
 } from 'lucide-react';
 import { sendChatMessage } from '../../api/chatbot';
 import { useAuth } from '../../context/AuthContext';
@@ -58,93 +61,88 @@ const SUGGESTIONS_BY_ROLE = {
   ],
 };
 
-// Enhanced Property Card
+// Enhanced Property Card - Minimal Style
 function PropertyMiniCard({ p }) {
   const img = p.images?.[0] ? resolveImageUrl(p.images[0]) : null;
   
   return (
     <Link
       to={`/properties/${p.id}`}
-      className="group block bg-white border border-gray-200 rounded-xl p-3 hover:border-primary-400 hover:shadow-md transition-all duration-300"
+      className="group block bg-white border border-gray-100 rounded-xl p-3 hover:border-gray-300 hover:shadow-lg transition-all duration-300"
     >
       <div className="flex gap-3">
-        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex-shrink-0 overflow-hidden">
+        <div className="w-14 h-14 rounded-lg bg-gray-50 flex-shrink-0 overflow-hidden">
           {img ? (
-            <img src={img} alt={p.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+            <img src={img} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ) : (
-            <Home className="w-6 h-6 text-gray-400 m-3" />
+            <Home className="w-6 h-6 text-gray-300 m-4" />
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">
+          <p className="text-sm font-medium text-gray-900 truncate">
             {p.title}
           </p>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
-            <span className="flex items-center gap-0.5">
+          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
               {p.city}
             </span>
             {p.bedrooms > 0 && (
-              <span className="flex items-center gap-0.5">
+              <span className="flex items-center gap-1">
                 <Bed className="w-3 h-3" />
                 {p.bedrooms}
               </span>
             )}
-            <span className="flex items-center gap-0.5">
-              <Square className="w-3 h-3" />
-              {p.area}{p.areaUnit}
-            </span>
           </div>
           <div className="flex items-center justify-between mt-1">
-            <p className="text-sm font-bold text-primary-600">
+            <p className="text-sm font-semibold text-gray-900">
               ₹{p.price?.toLocaleString('en-IN')}
             </p>
             {p.isApproved && (
-              <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
-                ✓ Verified
+              <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full">
+                Verified
               </span>
             )}
           </div>
         </div>
-        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-600 group-hover:translate-x-1 transition-all flex-shrink-0" />
       </div>
     </Link>
   );
 }
 
-// Typing Animation Component
+// Typing Animation
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="px-4 py-3 rounded-2xl bg-white border border-gray-200 rounded-bl-sm shadow-sm">
+      <div className="px-4 py-3 bg-gray-50 rounded-2xl rounded-bl-none">
         <div className="flex gap-1.5">
-          <span className="w-2 h-2 bg-primary-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-          <span className="w-2 h-2 bg-primary-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-          <span className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" />
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+          <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
         </div>
       </div>
     </div>
   );
 }
 
-// Message Component
+// Message Component - Clean Design
 function ChatMessage({ message, isUser }) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[85%] ${isUser ? 'order-2' : ''}`}>
         {!isUser && (
-          <div className="flex items-center gap-1.5 mb-1 ml-1">
-            <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center">
-              <Bot className="w-3 h-3 text-primary-600" />
+          <div className="flex items-center gap-2 mb-1.5 ml-1">
+            <div className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center">
+              <Bot className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-[10px] font-medium text-gray-500">Assistant</span>
+            <span className="text-xs font-medium text-gray-600">Assistant</span>
           </div>
         )}
         <div
-          className={`px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap ${
+          className={`px-4 py-2.5 text-sm whitespace-pre-wrap ${
             isUser
-              ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-br-sm shadow-md shadow-primary-500/20'
-              : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm'
+              ? 'bg-gray-900 text-white rounded-2xl rounded-br-none'
+              : 'bg-gray-50 text-gray-800 rounded-2xl rounded-bl-none'
           }`}
         >
           {message}
@@ -154,15 +152,15 @@ function ChatMessage({ message, isUser }) {
   );
 }
 
-// Suggestion Button
+// Suggestion Button - Minimal
 function SuggestionButton({ icon: Icon, text, onClick }) {
   return (
     <button
       onClick={() => onClick(text)}
-      className="group flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 hover:from-primary-100 hover:to-primary-200 transition-all duration-300 text-xs font-medium hover:scale-105 hover:shadow-md"
+      className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 text-xs text-gray-700 whitespace-nowrap flex-shrink-0"
     >
-      <Icon className="w-3.5 h-3.5" />
-      <span className="truncate max-w-[120px]">{text}</span>
+      <Icon className="w-3.5 h-3.5 text-gray-500" />
+      <span className="truncate max-w-[140px]">{text}</span>
     </button>
   );
 }
@@ -206,7 +204,6 @@ export default function ChatbotWidget() {
     setIsTyping(true);
     
     try {
-      // Simulate typing delay for better UX
       await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
       
       const { data } = await sendChatMessage(trimmed, role);
@@ -214,7 +211,7 @@ export default function ChatbotWidget() {
       const payload = data?.data || {};
       setMessages((m) => [...m, {
         role: 'bot',
-        text: payload.text || payload.message || "I’m here to help. Try asking about listings, approvals, or documents.",
+        text: payload.text || payload.message || "I'm here to help. Try asking about listings, approvals, or documents.",
         properties: payload.properties || [],
         suggestions: payload.suggestions || [],
         timestamp: new Date()
@@ -223,7 +220,7 @@ export default function ChatbotWidget() {
       setIsTyping(false);
       setMessages((m) => [...m, { 
         role: 'bot', 
-        text: "I'm sorry, I couldn't process your request. Please try again in a moment. 🤔",
+        text: "Sorry, I couldn't process your request. Please try again. 🤔",
         properties: [],
         timestamp: new Date()
       }]);
@@ -260,100 +257,89 @@ export default function ChatbotWidget() {
 
   return (
     <>
-      {/* Launcher Button */}
+      {/* Launcher Button - Minimal */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-40 group"
         >
           <div className="relative">
-            <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-40"></div>
-            <div className="relative w-14 h-14 rounded-full bg-gradient-to-r from-primary-600 to-primary-700 text-white flex items-center justify-center shadow-xl shadow-primary-500/30 hover:shadow-primary-500/50 hover:scale-110 active:scale-95 transition-all duration-300">
-              <Bot className="w-7 h-7" />
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
-                <Zap className="w-3 h-3 text-white" />
-              </div>
+            <div className="w-14 h-14 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300">
+              <Bot className="w-6 h-6" />
             </div>
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
           </div>
         </button>
       )}
 
-      {/* Chat Panel */}
+      {/* Chat Panel - Minimal Design */}
       {open && (
         <div className={`fixed bottom-5 right-5 z-40 transition-all duration-300 ease-in-out ${
           expanded ? 'w-[95vw] max-w-3xl h-[85vh] max-h-[700px]' : 'w-[92vw] max-w-sm h-[70vh] max-h-[560px]'
         } bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden`}>
           
-          {/* Header */}
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-4 py-3 flex items-center gap-3 flex-shrink-0">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                <Bot className="w-5 h-5" />
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-primary-600"></div>
+          {/* Header - Clean */}
+          <div className="border-b border-gray-100 px-4 py-3 flex items-center gap-3 flex-shrink-0 bg-white">
+            <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center">
+              <Bot className="w-4 h-4" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold leading-tight flex items-center gap-2">
+              <p className="text-sm font-semibold text-gray-900">
                 PropEstate Assistant
-                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-normal">
-                  AI
-                </span>
               </p>
-              <p className="text-[11px] text-primary-100 leading-tight flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                Online • Ready to help
+              <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                Online
               </p>
             </div>
             <div className="flex items-center gap-1">
               <button 
                 onClick={resetChat} 
-                title="Start a new chat" 
-                className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => setExpanded(!expanded)} 
-                title={expanded ? 'Minimize' : 'Maximize'}
-                className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
               >
                 {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
               <button 
                 onClick={() => setOpen(false)} 
-                className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
+          {/* Messages - Clean */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((m, i) => (
               <div key={i} className="space-y-2">
                 <ChatMessage message={m.text} isUser={m.role === 'user'} />
                 {m.properties?.length > 0 && (
-                  <div className="ml-11 space-y-1.5">
+                  <div className="ml-9 space-y-2">
                     {m.properties.map((p) => (
                       <PropertyMiniCard key={p.id} p={p} />
                     ))}
                   </div>
                 )}
                 {m.suggestions?.length > 0 && m.role === 'bot' && (
-                  <div className="ml-11 flex flex-wrap gap-2">
+                  <div className="ml-9 flex flex-wrap gap-1.5">
                     {m.suggestions.slice(0,3).map((item, idx) => (
                       <button
                         key={idx}
                         onClick={() => send(item)}
-                        className="rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-[11px] text-primary-700 hover:bg-primary-100 transition-colors"
+                        className="px-2.5 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
                       >
                         {item}
                       </button>
                     ))}
                   </div>
                 )}
-                <div className={`text-[10px] text-gray-400 ${m.role === 'user' ? 'text-right pr-2' : 'pl-11'}`}>
+                <div className={`text-[10px] text-gray-400 ${m.role === 'user' ? 'text-right pr-2' : 'pl-9'}`}>
                   {formatTime(m.timestamp)}
                 </div>
               </div>
@@ -361,9 +347,9 @@ export default function ChatbotWidget() {
             {isTyping && <TypingIndicator />}
           </div>
 
-          {/* Suggestions */}
+          {/* Suggestions - Clean */}
           {getMessageCount() < 2 && (
-            <div className="px-3 pb-2 flex gap-1.5 overflow-x-auto flex-shrink-0 scrollbar-thin scrollbar-thumb-gray-300">
+            <div className="px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0 scrollbar-thin scrollbar-thumb-gray-300">
               {suggestions.slice(0, 4).map((s, index) => (
                 <SuggestionButton 
                   key={index} 
@@ -375,25 +361,7 @@ export default function ChatbotWidget() {
             </div>
           )}
 
-          {/* Quick Actions */}
-          {getMessageCount() < 2 && (
-            <div className="px-3 pb-2 flex gap-2 flex-shrink-0 border-b border-gray-100">
-              <button className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
-                <MessageCircle className="w-3.5 h-3.5" />
-                Quick Help
-              </button>
-              <button className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
-                <Shield className="w-3.5 h-3.5" />
-                FAQ
-              </button>
-              <button className="flex items-center gap-1.5 text-[11px] px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
-                <Phone className="w-3.5 h-3.5" />
-                Contact Support
-              </button>
-            </div>
-          )}
-
-          {/* Input */}
+          {/* Input - Minimal */}
           <form
             onSubmit={(e) => { e.preventDefault(); send(); }}
             className="p-3 border-t border-gray-100 flex items-end gap-2 flex-shrink-0 bg-white"
@@ -404,25 +372,25 @@ export default function ChatbotWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                placeholder="Type a message..."
                 rows="1"
-                className="w-full resize-none rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all duration-300 px-4 py-2.5 text-sm min-h-[44px] max-h-[100px]"
+                className="w-full resize-none rounded-xl border border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 outline-none transition-all duration-200 px-4 py-2.5 text-sm min-h-[44px] max-h-[100px] bg-gray-50"
                 style={{ height: 'auto' }}
               />
             </div>
             <button 
               type="submit" 
               disabled={loading || !input.trim()} 
-              className="h-[44px] w-[44px] rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white flex items-center justify-center shadow-lg shadow-primary-500/25 hover:shadow-primary-500/40 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              className="h-[44px] w-[44px] rounded-xl bg-gray-900 hover:bg-gray-800 text-white flex items-center justify-center transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Footer */}
+          {/* Footer - Minimal */}
           <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
             <p className="text-[10px] text-gray-400">
-              <span className="font-medium">🔒 Secure</span> • AI-powered assistant
+              AI-powered assistant
             </p>
             <p className="text-[10px] text-gray-400">
               {getMessageCount()} messages
