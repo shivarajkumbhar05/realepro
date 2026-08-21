@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const transporter = require('../config/mailer');
 
 const jwtSecret = process.env.JWT_SECRET || 'realpro-dev-secret-change-me';
 const jwtExpire = process.env.JWT_EXPIRE || '7d';
@@ -130,21 +132,35 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// ─── @route  POST /api/auth/reset-password ───────────────────────────────────
 exports.forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
 
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email is required.' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with that email.' });
+    const user = await User.findOne({ email }).select('+passwordResetToken +passwordResetExpire');
+    if (user) {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      user.passwordResetToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+      user.passwordResetExpire = new Date(Date.now() + 15 * 60 * 1000);
+      await user.save({ validateBeforeSave: false });
+
+      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/forgot-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+      try {
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: 'Reset your PropEstate password',
+          html: `<p>We received a password reset request.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 15 minutes and can be used once.</p>`,
+        });
+      } catch (mailError) {
+        console.warn('Password reset email failed:', mailError.message);
+      }
     }
 
-    return res.status(200).json({ success: true, message: 'Password reset instructions will be sent if email delivery is configured.' });
+    return res.status(200).json({ success: true, message: 'If an account exists, password reset instructions have been sent.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -152,18 +168,25 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, token } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and new password are required.' });
+    if (!email || !password || !token) {
+      return res.status(400).json({ success: false, message: 'Email, reset token, and new password are required.' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      passwordResetToken: hashedToken,
+      passwordResetExpire: { $gt: new Date() },
+    }).select('+password +passwordResetToken +passwordResetExpire');
     if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with that email.' });
+      return res.status(400).json({ success: false, message: 'Reset link is invalid or expired.' });
     }
 
     user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpire = undefined;
     await user.save();
 
     sendTokenResponse(user, 200, res, 'Password reset successfully');

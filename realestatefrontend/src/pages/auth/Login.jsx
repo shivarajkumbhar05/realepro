@@ -25,7 +25,6 @@ import AuthFooter from "../../components/layout/AuthFooter";
 import { motion } from "framer-motion";
 import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { auth, googleProvider } from "../../firebase";
-import { forgotPassword as requestPasswordReset } from "../../api/auth";
 
 const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
 
@@ -96,13 +95,7 @@ export default function Login() {
       toast.error("Please enter your registered email first.");
       return;
     }
-    try {
-      const { data } = await requestPasswordReset(email);
-      toast.success(data.message);
-      navigate("/forgot-password", { state: { email } });
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to send reset instructions");
-    }
+    navigate("/forgot-password", { state: { email } });
   };
 
   // ─── Handle Google User ──────────────────────────────────────────

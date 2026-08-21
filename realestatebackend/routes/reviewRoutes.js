@@ -13,8 +13,9 @@ const {
 
 // Public routes
 router.get('/', getReviews);
-router.get('/:id', getReview);
 router.get('/property/:propertyId', getPropertyReviews);
+router.get('/user/me', protect, getUserReviews);
+router.get('/:id', getReview);
 
 // Protected routes
 router.use(protect);
@@ -22,6 +23,5 @@ router.use(protect);
 router.post('/', createReview);
 router.put('/:id', updateReview);
 router.delete('/:id', deleteReview);
-router.get('/user/me', getUserReviews);
 
 module.exports = router; // ✅ Make sure this is here

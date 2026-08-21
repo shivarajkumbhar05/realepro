@@ -48,6 +48,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpire: {
+      type: Date,
+      select: false,
+    },
     favorites: [
       {
         type: mongoose.Schema.Types.ObjectId,

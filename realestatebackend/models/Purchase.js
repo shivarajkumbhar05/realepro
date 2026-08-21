@@ -30,6 +30,7 @@ const purchaseSchema = new mongoose.Schema(
     contactPhone: {
       type: String,
       trim: true,
+      maxlength: [30, 'Contact phone cannot exceed 30 characters'],
     },
     status: {
       type: String,
@@ -40,6 +41,9 @@ const purchaseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-purchaseSchema.index({ property: 1, buyer: 1 });
+purchaseSchema.index(
+  { property: 1, buyer: 1 },
+  { unique: true, partialFilterExpression: { status: 'pending' } }
+);
 
 module.exports = mongoose.model('Purchase', purchaseSchema);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { resetPassword } from "../../api/auth";
+import { forgotPassword, resetPassword } from "../../api/auth";
 import {
   Building2,
   Eye,
@@ -149,6 +149,8 @@ const PasswordRequirements = ({ password }) => {
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const location = useLocation();
+  const resetToken = new URLSearchParams(location.search).get("token");
+  const resetEmail = new URLSearchParams(location.search).get("email");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -163,7 +165,7 @@ export default function ForgotPassword() {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      email: location.state?.email || "",
+      email: resetEmail || location.state?.email || "",
     },
   });
 
@@ -172,13 +174,16 @@ export default function ForgotPassword() {
   const onSubmit = async (formData) => {
     try {
       setLoading(true);
-      const { data } = await resetPassword({
-        email: formData.email,
-        password: formData.password,
-      });
+      const { data } = resetToken
+        ? await resetPassword({
+            email: formData.email,
+            password: formData.password,
+            token: resetToken,
+          })
+        : await forgotPassword(formData.email);
       
       setSuccess(true);
-      toast.success(data.message || "Password reset successful!");
+      toast.success(data.message || (resetToken ? "Password reset successful!" : "Reset instructions sent."));
       
       setTimeout(() => {
         navigate("/login", { 
@@ -308,10 +313,12 @@ export default function ForgotPassword() {
                   />
                 </motion.div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  Password Reset Successfully!
+                  {resetToken ? "Password Reset Successfully!" : "Reset Link Requested"}
                 </h3>
                 <p className="text-gray-500 mb-6">
-                  Your password has been reset. Redirecting to login...
+                  {resetToken
+                    ? "Your password has been reset. Redirecting to login..."
+                    : "If the email is registered, you will receive a secure reset link shortly."}
                 </p>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -366,6 +373,8 @@ export default function ForgotPassword() {
                   </AnimatePresence>
                 </div>
 
+                {resetToken && (
+                <>
                 {/* New Password with Strength Indicator - Light Mode */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -457,6 +466,8 @@ export default function ForgotPassword() {
                     </motion.p>
                   )}
                 </div>
+                </>
+                )}
 
                 {/* Enhanced Reset Button - Light Mode */}
                 <motion.button
@@ -475,12 +486,12 @@ export default function ForgotPassword() {
                   {loading ? (
                     <>
                       <Loader2 className="animate-spin h-5 w-5" />
-                      Resetting Password...
+                      {resetToken ? "Resetting Password..." : "Sending Instructions..."}
                     </>
                   ) : (
                     <>
                       <Fingerprint size={18} />
-                      Reset Password
+                      {resetToken ? "Reset Password" : "Send Reset Link"}
                     </>
                   )}
                 </motion.button>

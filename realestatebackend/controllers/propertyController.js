@@ -204,6 +204,12 @@ const getProperty = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
+    const isOwner = req.user && property.agent?._id?.toString() === req.user.id;
+    const canViewUnpublished = req.user?.role === 'admin' || isOwner;
+    if ((!property.isActive || !property.isApproved) && !canViewUnpublished) {
+      return res.status(404).json({ success: false, message: 'Property not found' });
+    }
+
     property.views = (property.views || 0) + 1;
     await property.save();
 

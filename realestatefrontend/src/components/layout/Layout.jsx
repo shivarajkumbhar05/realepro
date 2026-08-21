@@ -13,6 +13,7 @@ import {
 import ChatbotWidget from '../chat/ChatbotWidget';
 import { WhatsAppFloatingButton } from '../chat/WhatsAppButton';
 import AuthFooter from '../layout/AuthFooter';
+import { getNotifications } from '../../api/notifications';
 
 const navConfig = {
   admin: [
@@ -86,7 +87,7 @@ export default function Layout({ children }) {
   const { user, logout, isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -105,6 +106,24 @@ export default function Layout({ children }) {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const { data } = await getNotifications();
+        if (active) setNotifications(data.unreadCount || 0);
+      } catch {
+        if (active) setNotifications(0);
+      }
+    };
+    loadNotifications();
+    const interval = window.setInterval(loadNotifications, 30000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, []);
 
   const handleLogout = async () => {

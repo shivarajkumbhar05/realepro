@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const net = require('net');
 const connectDB = require('./config/db');
@@ -9,6 +11,10 @@ const User = require('./models/User');
 
 // Load env vars
 dotenv.config();
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be configured in production.');
+}
 
 const ensureDefaultAdmin = async () => {
   try {
@@ -45,6 +51,22 @@ const ensureDefaultAdmin = async () => {
 };
 
 const app = express();
+
+app.use(helmet());
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many authentication attempts. Please try again later.' },
+});
+const actionLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please slow down.' },
+});
 
 // ─── Core Middleware ──────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
@@ -90,7 +112,10 @@ app.options('*', cors());
 console.log('🔍 Loading authRoutes...');
 const authRoutes = require('./routes/authRoutes');
 console.log('✅ authRoutes loaded, type:', typeof authRoutes);
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+
+const notificationRoutes = require('./routes/notificationRoutes');
+app.use('/api/notifications', notificationRoutes);
 
 console.log('🔍 Loading propertyRoutes...');
 const propertyRoutes = require('./routes/propertyRoutes');
@@ -110,17 +135,17 @@ app.use('/api/reviews', reviewRoutes);
 console.log('🔍 Loading purchaseRoutes...');
 const purchaseRoutes = require('./routes/purchaseRoutes');
 console.log('✅ purchaseRoutes loaded, type:', typeof purchaseRoutes);
-app.use('/api/purchases', purchaseRoutes);
+app.use('/api/purchases', actionLimiter, purchaseRoutes);
 
 console.log('🔍 Loading chatbotRoutes...');
 const chatbotRoutes = require('./routes/chatbotRoutes');
 console.log('✅ chatbotRoutes loaded, type:', typeof chatbotRoutes);
-app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/chatbot', actionLimiter, chatbotRoutes);
 
 console.log('🔍 Loading contactRoutes...');
 const contactRoutes = require('./routes/contactRoutes');
 console.log('✅ contactRoutes loaded, type:', typeof contactRoutes);
-app.use('/api/contact', contactRoutes);
+app.use('/api/contact', actionLimiter, contactRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

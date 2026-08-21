@@ -1,7 +1,8 @@
 const Purchase = require('../models/Purchase');
 const Property = require('../models/Property');
 const User = require('../models/User');
-const { transporter } = require('../config/mailer');
+const Notification = require('../models/Notification');
+const transporter = require('../config/mailer');
 
 // ─── @route  POST /api/purchases/property/:propertyId ─────────────────────────
 // ─── @access Private (buyer)
@@ -28,6 +29,13 @@ exports.createPurchase = async (req, res) => {
 
     if (property.status === 'sold' || property.status === 'rented') {
       return res.status(400).json({ success: false, message: 'This property is no longer available.' });
+    }
+
+    if (message && String(message).length > 1000) {
+      return res.status(400).json({ success: false, message: 'Offer message cannot exceed 1000 characters.' });
+    }
+    if (contactPhone && String(contactPhone).length > 30) {
+      return res.status(400).json({ success: false, message: 'Contact phone cannot exceed 30 characters.' });
     }
 
     const agentId = property.agent._id || property.agent;
@@ -57,6 +65,19 @@ exports.createPurchase = async (req, res) => {
       message,
       contactPhone: contactPhone || req.user.phone,
     });
+
+    try {
+      await Notification.create({
+        recipient: agentId,
+        type: 'purchase_offer',
+        title: 'New purchase offer',
+        message: `A buyer submitted an offer for ${property.title}.`,
+        purchase: purchase._id,
+        property: propertyId,
+      });
+    } catch (notificationError) {
+      console.warn('Offer notification could not be created:', notificationError.message);
+    }
 
     const populated = await purchase.populate([
       { path: 'property', select: 'title price location images' },
@@ -123,6 +144,9 @@ exports.createPurchase = async (req, res) => {
     });
   } catch (error) {
     console.error('Create purchase error:', error);
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: 'You already have a pending offer on this property.' });
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -180,6 +204,10 @@ exports.updatePurchaseStatus = async (req, res) => {
     const isAgentOwner = purchase.agent.toString() === req.user.id;
     const isBuyerCancelling = purchase.buyer.toString() === req.user.id && status === 'cancelled';
 
+    if (purchase.status !== 'pending') {
+      return res.status(409).json({ success: false, message: 'This offer has already been finalized.' });
+    }
+
     if (!isAgentOwner && req.user.role !== 'admin' && !isBuyerCancelling) {
       return res.status(403).json({
         success: false,
@@ -190,10 +218,24 @@ exports.updatePurchaseStatus = async (req, res) => {
     purchase.status = status;
     await purchase.save();
 
-    const populated = await purchase
-      .populate('property', 'title price location')
-      .populate('buyer', 'name email')
-      .execPopulate();
+    const recipient = status === 'cancelled' ? purchase.agent : purchase.buyer;
+    try {
+      await Notification.create({
+        recipient,
+        type: 'purchase_status',
+        title: `Offer ${status}`,
+        message: `The offer for your property has been ${status}.`,
+        purchase: purchase._id,
+        property: purchase.property,
+      });
+    } catch (notificationError) {
+      console.warn('Purchase status notification could not be created:', notificationError.message);
+    }
+
+    const populated = await purchase.populate([
+      { path: 'property', select: 'title price location' },
+      { path: 'buyer', select: 'name email' },
+    ]);
 
     res.status(200).json({
       success: true,
@@ -240,6 +282,13 @@ exports.getPurchase = async (req, res) => {
 
     if (!purchase) {
       return res.status(404).json({ success: false, message: 'Purchase not found.' });
+    }
+
+    const canView = req.user.role === 'admin'
+      || purchase.buyer._id.toString() === req.user.id
+      || purchase.agent._id.toString() === req.user.id;
+    if (!canView) {
+      return res.status(403).json({ success: false, message: 'You are not authorized to view this purchase.' });
     }
 
     res.status(200).json({ success: true, data: purchase });
