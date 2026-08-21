@@ -732,9 +732,9 @@ export default function PropertyDetail() {
             {!isUnavailable && canMakeOffer && (
               <button
                 onClick={() => setIsOfferModalOpen(true)}
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm flex items-center gap-2 transition-colors shadow-lg shadow-primary-500/30"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-lg shadow-slate-900/20 border border-slate-700"
               >
-                <IndianRupee className="w-4 h-4" /> 
+                <IndianRupee className="w-4 h-4 text-amber-300" /> 
                 Make an Offer
               </button>
             )}
@@ -828,9 +828,9 @@ export default function PropertyDetail() {
               {!isUnavailable && canMakeOffer && (
                 <button
                   onClick={() => setIsOfferModalOpen(true)}
-                  className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                  className="w-full px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-md shadow-slate-900/15 border border-slate-700"
                 >
-                  <IndianRupee className="w-4 h-4" /> 
+                  <IndianRupee className="w-4 h-4 text-amber-300" /> 
                   Make an Offer
                 </button>
               )}
