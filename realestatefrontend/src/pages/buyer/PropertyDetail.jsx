@@ -8,7 +8,7 @@ import { resolveImageUrl, getPropertyImage } from '../../utils/imageUtils';
 import { 
   MapPin, Bed, Bath, Square, Car, CheckCircle, Edit, Trash2, 
   ArrowLeft, Phone, Mail, Building2, ShoppingBag, Star, Heart, 
-  GitCompare, Loader2, AlertCircle, DollarSign, Send, MessageCircle,
+  GitCompare, Loader2, AlertCircle, IndianRupee, Send, MessageCircle,
   X, Calendar, Clock, User, Award, Shield, FileText, Printer,
   ChevronLeft, ChevronRight, Image as ImageIcon, ZoomIn, Maximize2
 } from 'lucide-react';
@@ -734,7 +734,7 @@ export default function PropertyDetail() {
                 onClick={() => setIsOfferModalOpen(true)}
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm flex items-center gap-2 transition-colors shadow-lg shadow-primary-500/30"
               >
-                <DollarSign className="w-4 h-4" /> 
+                <IndianRupee className="w-4 h-4" /> 
                 Make an Offer
               </button>
             )}
@@ -830,7 +830,7 @@ export default function PropertyDetail() {
                   onClick={() => setIsOfferModalOpen(true)}
                   className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
                 >
-                  <DollarSign className="w-4 h-4" /> 
+                  <IndianRupee className="w-4 h-4" /> 
                   Make an Offer
                 </button>
               )}

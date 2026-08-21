@@ -3,7 +3,7 @@ import {
   BarChart3, Building2, Users, CheckCircle2, Clock3, 
   TrendingUp, ShieldCheck, Sparkles, AlertCircle, 
   RefreshCw, Download, Calendar, Filter, ChevronDown,
-  Eye, EyeOff, DollarSign, Home, UserPlus, FileText,
+  Eye, EyeOff, IndianRupee, Home, UserPlus, FileText,
   ShoppingBag, Star, Percent, Activity, Zap
 } from 'lucide-react';
 import { getAnalytics } from '../../api/admin';
@@ -502,7 +502,7 @@ export default function AdminAnalytics() {
                 <>
                   <div className="flex items-center justify-between rounded-xl bg-gray-50 p-3">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-green-500" />
+                      <IndianRupee className="w-4 h-4 text-green-500" />
                       Total Revenue
                     </span>
                     <span className="font-semibold text-gray-900">
