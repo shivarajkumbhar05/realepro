@@ -15,7 +15,7 @@ const {
 router.use(protect);
 
 // Buyer routes
-router.post('/property/:propertyId', createPurchase);
+router.post('/property/:propertyId', authorize('buyer'), createPurchase);
 router.get('/mine', getMyPurchases);
 
 // Agent/Admin routes
