@@ -33,6 +33,20 @@ const documentStorage = multer.diskStorage({
   },
 });
 
+const propertyFileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const folder = file.fieldname === 'documents' ? 'documents' : 'properties';
+    const dest = path.join(__dirname, `../uploads/${folder}`);
+    ensureDir(dest);
+    cb(null, dest);
+  },
+  filename: (req, file, cb) => {
+    const prefix = file.fieldname === 'documents' ? 'doc' : 'prop';
+    const uniqueName = `${prefix}_${Date.now()}_${Math.round(Math.random() * 1e6)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+
 // ─── File Filters ─────────────────────────────────────────────────────────────
 const imageFileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|webp/;
@@ -53,6 +67,11 @@ const documentFileFilter = (req, file, cb) => {
   } else {
     cb(new Error('Only PDF and Word documents are allowed!'), false);
   }
+};
+
+const propertyFileFilter = (req, file, cb) => {
+  if (file.fieldname === 'documents') return documentFileFilter(req, file, cb);
+  return imageFileFilter(req, file, cb);
 };
 
 // ─── Avatar Storage ──────────────────────────────────────────────────────────
@@ -87,14 +106,17 @@ const uploadAvatar = multer({
   limits: { fileSize: 2 * 1024 * 1024, files: 1 }, // 2MB
 });
 
-const uploadPropertyFiles = (req, res, next) => {
-  const imageMiddleware = uploadImages.fields([{ name: 'images', maxCount: 10 }]);
-  const documentMiddleware = uploadDocuments.fields([{ name: 'documents', maxCount: 5 }]);
+const uploadPropertyMultipart = multer({
+  storage: propertyFileStorage,
+  fileFilter: propertyFileFilter,
+  limits: { files: 15, fileSize: 10 * 1024 * 1024 },
+}).fields([
+  { name: 'images', maxCount: 10 },
+  { name: 'documents', maxCount: 5 },
+]);
 
-  imageMiddleware(req, res, (imageErr) => {
-    if (imageErr) return next(imageErr);
-    documentMiddleware(req, res, next);
-  });
+const uploadPropertyFiles = (req, res, next) => {
+  uploadPropertyMultipart(req, res, next);
 };
 
 module.exports = { uploadImages, uploadDocuments, uploadAvatar, uploadPropertyFiles };
