@@ -34,6 +34,7 @@ import AdminAnalytics from './pages/admin/AdminAnalytics';
 // Shared Pages
 import Profile from './pages/Profile';
 import Purchases from './pages/Purchases';
+import Transactions from './pages/Transactions';
 import Settings from './pages/Settings';
 
 // Public Pages
@@ -102,6 +103,7 @@ export default function App() {
                 <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
                 <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
                 <Route path="/purchases" element={<AppLayout><Purchases /></AppLayout>} />
+                <Route path="/transactions" element={<AppLayout><Transactions /></AppLayout>} />
                 
                 {/* Buyer Routes */}
                 <Route path="/properties" element={<AppLayout><PropertyList /></AppLayout>} />

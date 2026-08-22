@@ -3,6 +3,7 @@ const Property = require('../models/Property');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const transporter = require('../config/mailer');
+const Transaction = require('../models/Transaction');
 
 // ─── @route  POST /api/purchases/property/:propertyId ─────────────────────────
 // ─── @access Private (buyer)
@@ -217,6 +218,23 @@ exports.updatePurchaseStatus = async (req, res) => {
 
     purchase.status = status;
     await purchase.save();
+
+    if (status === 'accepted') {
+      await Transaction.findOneAndUpdate(
+        { purchase: purchase._id },
+        {
+          $setOnInsert: {
+            property: purchase.property,
+            purchase: purchase._id,
+            buyer: purchase.buyer,
+            agent: purchase.agent,
+            agreedPrice: purchase.offerPrice,
+            history: [{ status: 'offer_accepted', note: 'Offer accepted and transaction opened.', changedBy: req.user.id }],
+          },
+        },
+        { upsert: true, setDefaultsOnInsert: true }
+      );
+    }
 
     const recipient = status === 'cancelled' ? purchase.agent : purchase.buyer;
     try {

@@ -165,8 +165,8 @@ export default function PropertyList() {
           // Check if data has data array (nested)
           if (response.data.data && Array.isArray(response.data.data)) {
             propertiesData = response.data.data;
-            totalPagesData = response.data.pages || response.data.totalPages || 1;
-            totalData = response.data.total || response.data.totalCount || 0;
+            totalPagesData = response.data.pagination?.pages || response.data.pages || response.data.totalPages || 1;
+            totalData = response.data.pagination?.total || response.data.total || response.data.totalCount || 0;
           } 
           // Check if data is an array
           else if (Array.isArray(response.data)) {
@@ -326,10 +326,10 @@ export default function PropertyList() {
   }, [applied, load, showAll]);
 
   useEffect(() => {
-    if (viewMode === 'map' && mapProperties.length === 0 && !mapLoading) {
+    if (viewMode === 'map' && !mapLoading) {
       loadMap(applied);
     }
-  }, [viewMode, applied, loadMap, mapProperties.length, mapLoading]);
+  }, [viewMode, applied, loadMap]);
 
   // ─── Filter Functions ─────────────────────────────────────────────────
   const applyFilters = useCallback(() => {
@@ -337,6 +337,7 @@ export default function PropertyList() {
       Object.entries(filters).filter(([, v]) => v !== '' && v !== null && v !== undefined)
     );
     setApplied(cleaned);
+    setMapProperties([]);
     setPage(1);
     setShowAll(false);
     setAllPropertiesLoaded(false);
@@ -348,6 +349,7 @@ export default function PropertyList() {
       minPrice: '', maxPrice: '', bedrooms: ''
     });
     setApplied({});
+    setMapProperties([]);
     setPage(1);
     setShowAll(false);
     setAllPropertiesLoaded(false);

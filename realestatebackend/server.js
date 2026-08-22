@@ -137,6 +137,10 @@ const purchaseRoutes = require('./routes/purchaseRoutes');
 console.log('✅ purchaseRoutes loaded, type:', typeof purchaseRoutes);
 app.use('/api/purchases', actionLimiter, purchaseRoutes);
 
+console.log('Loading transactionRoutes...');
+const transactionRoutes = require('./routes/transactionRoutes');
+app.use('/api/transactions', actionLimiter, transactionRoutes);
+
 console.log('🔍 Loading chatbotRoutes...');
 const chatbotRoutes = require('./routes/chatbotRoutes');
 console.log('✅ chatbotRoutes loaded, type:', typeof chatbotRoutes);

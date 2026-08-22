@@ -502,8 +502,10 @@ export default function Purchases() {
       );
     }
     if (filters.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
       filtered = filtered.filter(p => 
-        new Date(p.createdAt) <= new Date(filters.endDate)
+        new Date(p.createdAt) <= endDate
       );
     }
 

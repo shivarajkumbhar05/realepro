@@ -6,6 +6,7 @@ import {
   LogOut, Menu, X, ChevronDown, Bell, Search, ShoppingBag,
   ShieldCheck, Briefcase, HeartHandshake, PlusCircle,
   Star, MessageCircle, Calendar, FileText, BarChart3,
+  Workflow,
   Sun, Moon, ChevronRight, Sparkles,
   GitCompare, LayoutDashboard, Clock, TrendingUp, Eye,
   ThumbsUp, Crown, Zap, Rocket, Layers, Target
@@ -22,6 +23,7 @@ const navConfig = {
     { label: 'Pending Approval', path: '/admin/pending', icon: Clock, badge: '12' },
     { label: 'Users', path: '/admin/users', icon: Users, badge: null },
     { label: 'Purchase Requests', path: '/purchases', icon: ShoppingBag, badge: '3' },
+    { label: 'Transactions', path: '/transactions', icon: Workflow, badge: null },
     { label: 'Analytics', path: '/admin/analytics', icon: TrendingUp, badge: null },
   ],
   agent: [
@@ -30,12 +32,14 @@ const navConfig = {
     { label: 'My Listings', path: '/agent/my-listings', icon: Building2, badge: null },
     { label: 'Add Property', path: '/agent/my-listings/new', icon: PlusCircle, badge: 'new' },
     { label: 'Purchase Requests', path: '/purchases', icon: ShoppingBag, badge: null },
+    { label: 'Transactions', path: '/transactions', icon: Workflow, badge: null },
     { label: 'Analytics', path: '/agent/analytics', icon: BarChart3, badge: null },
   ],
   buyer: [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, badge: null },
     { label: 'Browse Properties', path: '/properties', icon: Building2, badge: null },
     { label: 'My Purchases', path: '/purchases', icon: ShoppingBag, badge: null },
+    { label: 'Transactions', path: '/transactions', icon: Workflow, badge: null },
     { label: 'Favorites', path: '/favorites', icon: Star, badge: null },
     { label: 'Compare', path: '/compare', icon: GitCompare, badge: null },
   ],
