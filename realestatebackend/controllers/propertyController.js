@@ -90,12 +90,30 @@ const buildDocumentPayload = (files = []) =>
     verifiedAt: null,
   }));
 
+const normalizeStoredUploadPath = (file, folder) => {
+  if (typeof file.path === 'string' && /^[A-Za-z]:[\\/]/.test(file.path)) {
+    return file.filename ? `/uploads/${folder}/${file.filename}` : file.path;
+  }
+  return file.path;
+};
+
 const serializeProperty = (property) => {
   if (!property) return property;
 
   const data = property.toObject ? property.toObject() : property;
+  const images = (data.images || []).map((image) => ({
+    ...image,
+    path: normalizeStoredUploadPath(image, 'properties'),
+  }));
+  const documents = (data.documents || []).map((document) => ({
+    ...document,
+    path: normalizeStoredUploadPath(document, 'documents'),
+  }));
+
   return {
     ...data,
+    images,
+    documents,
     propertyType: data.propertyType || data.type,
     type: data.type || data.propertyType,
   };
@@ -703,8 +721,9 @@ const uploadImages = async (req, res) => {
     }
 
     const images = (req.files || []).map((file, index) => ({
-      path: file.path || file.location,
+      path: `/uploads/properties/${file.filename || file.key}`,
       filename: file.filename || file.key,
+      originalName: file.originalname || file.filename,
       isPrimary: property.images.length === 0 && index === 0,
       caption: '',
     }));
@@ -869,7 +888,7 @@ const uploadDocuments = async (req, res) => {
 
     const documents = (req.files || []).map(file => ({
       name: file.originalname || file.filename,
-      path: file.path || file.location,
+      path: `/uploads/documents/${file.filename || file.key}`,
       filename: file.filename || file.key,
       uploadedAt: new Date(),
       verified: false,

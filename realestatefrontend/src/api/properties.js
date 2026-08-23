@@ -43,9 +43,7 @@ export const getPublicStats = async () => {
 // ─── Create a new property (agent/admin) ─────────────────────────────
 export const createProperty = async (propertyData) => {
   try {
-    const response = await api.post('/properties', propertyData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/properties', propertyData);
     return response.data;
   } catch (error) {
     console.error('Error creating property:', error);
@@ -56,9 +54,7 @@ export const createProperty = async (propertyData) => {
 // ─── Update a property (agent/admin) ──────────────────────────────────
 export const updateProperty = async (id, propertyData) => {
   try {
-    const response = await api.put(`/properties/${id}`, propertyData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.put(`/properties/${id}`, propertyData);
     return response.data;
   } catch (error) {
     console.error('Error updating property:', error);
@@ -234,11 +230,7 @@ export const deleteImage = async (propertyId, imageId) => {
 // ─── Upload images to property ──────────────────────────────────────
 export const uploadImages = async (propertyId, formData) => {
   try {
-    const response = await api.post(`/properties/${propertyId}/images`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post(`/properties/${propertyId}/images`, formData);
     return response.data;
   } catch (error) {
     console.error('Error uploading images:', error);
@@ -271,11 +263,7 @@ export const verifyDocuments = async (propertyId, documentData) => {
 // ─── Upload documents for a property ──────────────────────────────────
 export const uploadDocuments = async (propertyId, formData) => {
   try {
-    const response = await api.post(`/properties/${propertyId}/documents`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post(`/properties/${propertyId}/documents`, formData);
     return response.data;
   } catch (error) {
     console.error('Error uploading documents:', error);

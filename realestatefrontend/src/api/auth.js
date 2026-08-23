@@ -24,11 +24,7 @@ export const getMe = () =>
   api.get("/auth/me");
 
 export const updateProfile = (data) =>
-  api.put("/auth/updateprofile", data, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  api.put("/auth/updateprofile", data);
 
 export const changePassword = (data) =>
   api.put("/auth/changepassword", data);

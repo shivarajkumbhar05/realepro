@@ -75,6 +75,10 @@ const getUser = () => {
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
+
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
