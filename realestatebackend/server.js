@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 const net = require('net');
+const { GridFSBucket } = require('mongodb');
 const connectDB = require('./config/db');
 const { getDBConnection } = require('./config/db');
 const User = require('./models/User');
@@ -104,6 +105,30 @@ app.use(cors({
 }));
 
 // ─── Static File Serving ──────────────────────────────────────────────────────
+app.get('/uploads/:folder/:filename', async (req, res, next) => {
+  if (process.env.UPLOAD_STORAGE === 'local') return next();
+
+  try {
+    const connection = getDBConnection();
+    if (!connection?.db || !['avatars', 'documents', 'properties'].includes(req.params.folder)) {
+      return next();
+    }
+
+    const bucket = new GridFSBucket(connection.db, { bucketName: 'uploads' });
+    const files = await bucket.find({
+      filename: req.params.filename,
+      'metadata.folder': req.params.folder,
+    }).limit(1).toArray();
+    if (!files.length) return next();
+
+    const file = files[0];
+    res.setHeader('Content-Type', file.contentType || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    bucket.openDownloadStream(file._id).on('error', next).pipe(res);
+  } catch (error) {
+    next(error);
+  }
+});
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
