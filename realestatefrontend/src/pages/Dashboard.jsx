@@ -743,90 +743,97 @@ export default function Dashboard() {
   // ─── Buyer Dashboard ──────────────────────────────────────────────
   if (isBuyer) {
     return (
-      <div className={`${dashboardRoleClass} dashboard-shell space-y-8 pb-8`}>
-        <WelcomeSection />
+      <div className={`${dashboardRoleClass} dashboard-shell space-y-6 pb-8`}>
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-3xl bg-emerald-950 p-6 text-white shadow-xl shadow-emerald-950/10 sm:p-8"
+        >
+          <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full border-[36px] border-emerald-500/20" />
+          <div className="absolute -bottom-28 right-24 h-56 w-56 rounded-full border-[28px] border-teal-400/10" />
+          <div className="relative z-10 max-w-2xl">
+            <div className="mb-4 flex items-center gap-2 text-sm font-medium text-emerald-200">
+              <Sparkles className="h-4 w-4 text-amber-300" />
+              <span>{greeting}, {user?.name?.split(' ')[0] || 'there'}</span>
+            </div>
+            <h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">A better place to begin your property search.</h2>
+            <p className="mt-3 max-w-lg text-sm leading-6 text-emerald-100/80 sm:text-base">Explore verified homes, compare your favourites, and connect with trusted agents in one place.</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/properties" className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-emerald-950 transition-colors hover:bg-emerald-50">
+                <Search className="h-4 w-4" /> Explore properties
+              </Link>
+              <Link to="/favorites" className="inline-flex items-center gap-2 rounded-xl border border-emerald-700 bg-emerald-900/50 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-800">
+                <Heart className="h-4 w-4" /> View favourites
+              </Link>
+            </div>
+          </div>
+        </motion.section>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <StatCard icon={Building2} label="Available Properties" value={totalProperties} color="blue" delay={0} />
-          <StatCard icon={Users} label="Total Agents" value={totalAgents} color="primary" delay={0.1} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatCard icon={Building2} label="Available Properties" value={totalProperties} color="green" delay={0} />
+          <StatCard icon={Users} label="Trusted Agents" value={totalAgents} color="teal" delay={0.1} />
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="dashboard-featured relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-600 rounded-3xl p-8 text-white shadow-2xl shadow-emerald-500/20"
-        >
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full">
-              {[...Array(15)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-1 h-1 bg-white/20 rounded-full"
-                  style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
-                    animationDelay: `${Math.random() * 3}s`,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
-                <span className="text-sm font-medium text-emerald-100 bg-white/10 backdrop-blur-sm px-3 py-0.5 rounded-full">Featured</span>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.75fr)]">
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-6"
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">Fresh on the market</p>
+                <h3 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">Latest listings</h3>
               </div>
-              <h3 className="text-2xl font-bold">Find Your Dream Property</h3>
-              <p className="text-emerald-100 mt-1">Browse through verified listings from trusted agents</p>
+              <Link to="/properties" className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400">
+                See all <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <Link to="/properties" className="inline-flex items-center gap-2 bg-white text-emerald-700 px-6 py-3 rounded-xl font-semibold hover:bg-emerald-50 transition-colors shadow-lg hover:shadow-xl flex-shrink-0">
-              <Eye className="w-5 h-5" /> Browse Properties
-            </Link>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-white/20 hover:shadow-2xl transition-shadow"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-gray-900">Latest Listings</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Newest properties available</p>
-            </div>
-            <Link to="/properties" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
-              View all <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {properties.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full flex items-center justify-center mb-4">
-                <Home className="w-12 h-12 text-indigo-300" />
+            {properties.length === 0 ? (
+              <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 text-center dark:border-gray-700">
+                <Home className="mb-3 h-10 w-10 text-gray-300 dark:text-gray-600" />
+                <p className="font-medium text-gray-600 dark:text-gray-300">No properties available</p>
+                <p className="mt-1 text-sm text-gray-400">Check back later for new listings.</p>
               </div>
-              <p className="text-gray-500 font-medium text-lg">No properties available</p>
-              <p className="text-gray-400 text-sm mt-1">Check back later for new listings</p>
+            ) : (
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                {properties.slice(0, 5).map((property, index) => (
+                  <motion.div key={property._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+                    <PropertyCard property={property} featured />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.section>
+
+          <motion.aside
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-gray-900/60 sm:p-6"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-400">Your shortcuts</p>
+            <h3 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">Keep moving</h3>
+            <div className="mt-5 space-y-3">
+              <Link to="/compare" className="group flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm transition-transform hover:-translate-y-0.5 dark:bg-gray-900">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/40"><GitCompare className="h-5 w-5" /></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-gray-900 dark:text-white">Compare homes</span><span className="block text-xs text-gray-500">Make a confident choice</span></span>
+                <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link to="/purchases" className="group flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm transition-transform hover:-translate-y-0.5 dark:bg-gray-900">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40"><FileText className="h-5 w-5" /></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-gray-900 dark:text-white">Purchase requests</span><span className="block text-xs text-gray-500">Track your activity</span></span>
+                <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link to="/profile" className="group flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm transition-transform hover:-translate-y-0.5 dark:bg-gray-900">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-950/40"><UserIcon className="h-5 w-5" /></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-gray-900 dark:text-white">Complete your profile</span><span className="block text-xs text-gray-500">Help agents reach you</span></span>
+                <ChevronRight className="h-4 w-4 text-gray-300 transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {properties.slice(0, 5).map((p, i) => (
-                <motion.div
-                  key={p._id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <PropertyCard key={p._id} property={p} featured={true} />
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.div>
+          </motion.aside>
+        </div>
       </div>
     );
   }

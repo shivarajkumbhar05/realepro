@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../../context/AuthContext";
-import axios from "axios";
 import {
   Building2,
   Eye,
@@ -23,18 +22,13 @@ import {
 import toast from "react-hot-toast";
 import AuthFooter from "../../components/layout/AuthFooter";
 import { motion } from "framer-motion";
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
-import { auth, googleProvider } from "../../firebase";
-
-const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
 
 export default function Login() {
-  const { login, setAuthUser } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
 
   const {
@@ -58,22 +52,6 @@ export default function Login() {
     return "/dashboard";
   };
 
-  // Check for redirect result on mount
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          const user = result.user;
-          await handleGoogleUser(user);
-        }
-      } catch (error) {
-        console.error("Redirect result error:", error);
-      }
-    };
-    handleRedirectResult();
-  }, []);
-
   const onSubmit = async (formData) => {
     try {
       setLoading(true);
@@ -96,60 +74,6 @@ export default function Login() {
       return;
     }
     navigate("/forgot-password", { state: { email } });
-  };
-
-  // ─── Handle Google User ──────────────────────────────────────────
-  const handleGoogleUser = async (user) => {
-    try {
-      setGoogleLoading(true);
-      
-      const res = await axios.post(`${API}/google-register`, {
-        email: user.email,
-        name: user.displayName || user.email.split('@')[0],
-        googleId: user.uid,
-        avatar: user.photoURL || '',
-        role: "buyer"
-      });
-      
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("re_token", res.data.token);
-      setAuthUser(res.data.user);
-      
-      toast.success("🎉 Google Login Successful! Welcome back.");
-      navigate(getPostLoginRedirect(res.data.user?.role), { replace: true });
-    } catch (error) {
-      if (error.response?.status === 404) {
-        toast.error("No account found. Please sign up first.");
-      } else {
-        toast.error(error.message || "Google Login Failed");
-      }
-      console.error("Google Login Error:", error);
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  // ─── Google Login Handler with Popup ─────────────────────────────
-  const handleGoogleLogin = async () => {
-    try {
-      setGoogleLoading(true);
-
-      const result = await signInWithRedirect(auth, googleProvider);
-      if (result) {
-        const user = result.user;
-        await handleGoogleUser(user);
-      }
-    } catch (error) {
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-        toast.error("Popup was blocked. Please allow popups or try again.");
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        toast.error("Login was cancelled");
-      } else {
-        toast.error(error.message || "Google Login Failed");
-      }
-      console.error("Google Login Error:", error);
-      setGoogleLoading(false);
-    }
   };
 
   return (
@@ -372,56 +296,6 @@ export default function Login() {
                 </>
               )}
             </motion.button>
-
-            {/* Google Login Button */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-transparent text-gray-400">Or continue with</span>
-              </div>
-            </div>
-
-            {/* Google Button with Popup Fix */}
-            <motion.button
-              onClick={handleGoogleLogin}
-              disabled={googleLoading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full relative group"
-              type="button"
-            >
-              <div className="relative h-12 rounded-xl bg-white border-2 border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-50 via-yellow-50 to-green-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
-                {googleLoading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-gray-700 font-medium relative z-10">Signing in...</span>
-                  </>
-                ) : (
-                  <>
-                    <img 
-                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-                      alt="Google" 
-                      className="w-5 h-5 relative z-10"
-                    />
-                    <span className="text-gray-700 font-medium relative z-10 group-hover:text-gray-900 transition-colors">
-                      Sign in with Google
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-gray-400 relative z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0" />
-                  </>
-                )}
-              </div>
-            </motion.button>
-
-            {/* Popup Warning */}
-            {googleLoading && (
-              <p className="text-xs text-center text-gray-500 animate-pulse">
-                ⏳ Please allow the popup window to continue...
-              </p>
-            )}
 
             {/* Register Link */}
             <div className="text-center pt-2">

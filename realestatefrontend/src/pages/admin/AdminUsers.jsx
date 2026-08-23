@@ -5,7 +5,7 @@ import {
   UserPlus, Edit, Trash2, X, Check, Eye, Mail, Phone, Calendar, 
   Building2, ShoppingBag, Star, ExternalLink, Users, Search,
   Filter, ChevronLeft, ChevronRight, Shield, Award, Clock,
-  UserCheck, UserX, MoreVertical, Sparkles, Activity, BarChart3
+  UserCheck, UserX, MoreVertical, Sparkles, Activity, BarChart3, AlertCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';

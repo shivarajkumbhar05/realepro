@@ -7,14 +7,14 @@ import {
   ShieldCheck, Briefcase, HeartHandshake, PlusCircle,
   Star, MessageCircle, Calendar, FileText, BarChart3,
   Workflow,
-  Sun, Moon, ChevronRight, Sparkles,
+  ChevronRight, Sparkles,
   GitCompare, LayoutDashboard, Clock, TrendingUp, Eye,
   ThumbsUp, Crown, Zap, Rocket, Layers, Target
 } from 'lucide-react';
 import ChatbotWidget from '../chat/ChatbotWidget';
 import { WhatsAppFloatingButton } from '../chat/WhatsAppButton';
 import AuthFooter from '../layout/AuthFooter';
-import { getNotifications } from '../../api/notifications';
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../../api/notifications';
 
 const navConfig = {
   admin: [
@@ -90,8 +90,9 @@ const portalMeta = {
 export default function Layout({ children }) {
   const { user, logout, isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [notifications, setNotifications] = useState(0);
+  const [notificationItems, setNotificationItems] = useState([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -117,9 +118,15 @@ export default function Layout({ children }) {
     const loadNotifications = async () => {
       try {
         const { data } = await getNotifications();
-        if (active) setNotifications(data.unreadCount || 0);
+        if (active) {
+          setNotificationItems(data.data || []);
+          setNotifications(data.unreadCount || 0);
+        }
       } catch {
-        if (active) setNotifications(0);
+        if (active) {
+          setNotificationItems([]);
+          setNotifications(0);
+        }
       }
     };
     loadNotifications();
@@ -135,9 +142,28 @@ export default function Layout({ children }) {
     navigate('/login');
   };
 
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
+  const handleNotificationClick = async (notification) => {
+    setNotificationsOpen(false);
+    if (notification.isRead) return;
+    try {
+      await markNotificationRead(notification._id);
+      setNotificationItems((items) => items.map((item) => (
+        item._id === notification._id ? { ...item, isRead: true } : item
+      )));
+      setNotifications((count) => Math.max(0, count - 1));
+    } catch {
+      // The next polling cycle will restore the server state.
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotificationItems((items) => items.map((item) => ({ ...item, isRead: true })));
+      setNotifications(0);
+    } catch {
+      // Keep the unread badge when the server cannot update the notifications.
+    }
   };
 
   const RoleTag = () => (
@@ -336,28 +362,51 @@ export default function Layout({ children }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Dark Mode Toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-800/50 transition-colors relative"
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? (
-                <Sun className="w-5 h-5 text-yellow-500" />
-              ) : (
-                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              )}
-            </button>
-
             {/* Notifications */}
-            <button className="relative p-2 rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-800/50 transition-colors">
-              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              {notifications > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1.5 shadow-lg shadow-red-500/30 animate-pulse">
-                  {notifications > 9 ? '9+' : notifications}
-                </span>
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen((open) => !open)}
+                className="relative p-2 rounded-xl hover:bg-gray-100/50 dark:hover:bg-gray-800/50 transition-colors"
+                aria-label="Open notifications"
+                aria-expanded={notificationsOpen}
+              >
+                <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                {notifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1.5 shadow-lg shadow-red-500/30 animate-pulse">
+                    {notifications > 9 ? '9+' : notifications}
+                  </span>
+                )}
+              </button>
+              {notificationsOpen && (
+                <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                  <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                    <p className="font-semibold text-gray-900 dark:text-white">Notifications</p>
+                    {notifications > 0 && (
+                      <button onClick={handleMarkAllRead} className="text-xs font-medium text-primary-600 hover:text-primary-700">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notificationItems.length === 0 ? (
+                      <p className="px-4 py-8 text-center text-sm text-gray-500">You are all caught up.</p>
+                    ) : notificationItems.map((notification) => (
+                      <button
+                        key={notification._id}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3 text-left transition-colors last:border-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/60 ${notification.isRead ? '' : 'bg-primary-50/60 dark:bg-primary-950/20'}`}
+                      >
+                        <span className={`mt-1 h-2 w-2 flex-shrink-0 rounded-full ${notification.isRead ? 'bg-gray-300' : 'bg-primary-500'}`} />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium text-gray-900 dark:text-white">{notification.title}</span>
+                          <span className="mt-0.5 block text-xs leading-5 text-gray-500 dark:text-gray-400">{notification.message}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
             {/* User Profile */}
             <div className="flex items-center gap-3 ml-2 pl-3 border-l border-gray-200/50 dark:border-gray-700/50">
@@ -386,7 +435,7 @@ export default function Layout({ children }) {
         {/* Footer */}
         <footer className="flex-shrink-0 border-t border-white/20 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm px-4 lg:px-6 py-4">
           <div className="max-w-7xl mx-auto">
-            <AuthFooter dark={isDark} />
+            <AuthFooter dark={false} />
           </div>
         </footer>
       </div>

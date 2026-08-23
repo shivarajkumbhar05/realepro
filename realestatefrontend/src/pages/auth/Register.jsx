@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useForm } from "react-hook-form";
@@ -11,10 +11,11 @@ import {
 import toast from "react-hot-toast";
 import AuthFooter from "../../components/layout/AuthFooter";
 import { motion } from "framer-motion";
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
-import { auth, googleProvider } from "../../firebase";
 
-const API = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/auth";
+const API_BASE = import.meta.env.VITE_API_URL || (
+  import.meta.env.PROD ? "https://realepro.onrender.com/api" : "http://localhost:5000/api"
+);
+const API = API_BASE + "/auth";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -23,7 +24,6 @@ export default function Register() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   const {
     register,
@@ -50,36 +50,6 @@ export default function Register() {
     return "/dashboard";
   };
 
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result?.user) {
-          const user = result.user;
-          const res = await axios.post(`${API}/google-register`, {
-            email: user.email,
-            name: user.displayName || user.email.split('@')[0],
-            googleId: user.uid,
-            avatar: user.photoURL || '',
-            role: getValues("role") || "buyer"
-          });
-
-          localStorage.setItem("token", res.data.token);
-          localStorage.setItem("re_token", res.data.token);
-          setAuthUser(res.data.user);
-
-          toast.success("🎉 Google Registration Successful! Welcome to PropEstate.");
-          navigate(getPostLoginRedirect(res.data.user?.role), { replace: true });
-        }
-      } catch (error) {
-        console.error("Google redirect result error:", error);
-        toast.error(error.message || "Google Registration Failed");
-      }
-    };
-
-    handleRedirectResult();
-  }, [getValues, navigate, setAuthUser]);
-
   const onSubmit = async (data) => {
     try {
       setLoading(true);
@@ -94,24 +64,6 @@ export default function Register() {
       toast.error(message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // ─── Google Registration Handler ──────────────────────────────────
-  const handleGoogleSignUp = async () => {
-    try {
-      setGoogleLoading(true);
-      await signInWithRedirect(auth, googleProvider);
-    } catch (error) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.error("Sign-in was cancelled");
-      } else if (error.code === 'auth/popup-blocked') {
-        toast.error("Popup was blocked. Please allow popups for this site and try again.");
-      } else {
-        toast.error(error.message || "Google Registration Failed");
-      }
-      console.error("Google Sign-Up Error:", error);
-      setGoogleLoading(false);
     }
   };
 
@@ -203,59 +155,6 @@ export default function Register() {
                 <p className="text-gray-500 text-[10px]">{stat.label}</p>
               </div>
             ))}
-          </div>
-
-          {/* ─── Google Sign Up Button ────────────────────────────────── */}
-          <div className="mt-6">
-            <motion.button
-              onClick={handleGoogleSignUp}
-              disabled={googleLoading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full relative group"
-              type="button"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 via-yellow-500/20 to-green-500/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="relative h-12 rounded-xl bg-white border-2 border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-50 via-yellow-50 to-green-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
-                {googleLoading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-gray-700 font-medium relative z-10">Signing up...</span>
-                  </>
-                ) : (
-                  <>
-                    <img 
-                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-                      alt="Google" 
-                      className="w-5 h-5 relative z-10"
-                    />
-                    <span className="text-gray-700 font-medium relative z-10 group-hover:text-gray-900 transition-colors">
-                      Sign up with Google
-                    </span>
-                    <ArrowLeft className="w-4 h-4 text-gray-400 relative z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-x-2 group-hover:translate-x-0 rotate-180" />
-                  </>
-                )}
-              </div>
-            </motion.button>
-
-            {/* Popup Warning */}
-            {googleLoading && (
-              <p className="text-xs text-center text-gray-500 mt-2 animate-pulse">
-                ⏳ Please allow the popup window to continue...
-              </p>
-            )}
-          </div>
-
-          {/* ─── Divider ───────────────────────────────────────────────── */}
-          <div className="relative flex items-center justify-center my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <span className="relative bg-white/80 px-4 text-xs text-gray-500">
-              Or sign up with email
-            </span>
           </div>
 
           {/* ─── Form ─────────────────────────────────────────────────── */}

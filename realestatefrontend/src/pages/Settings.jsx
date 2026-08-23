@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bell, Check, Moon, Settings as SettingsIcon, SlidersHorizontal } from 'lucide-react';
+import { Bell, Check, Settings as SettingsIcon, SlidersHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const SETTINGS_KEY = 're_settings';
@@ -8,7 +8,6 @@ const DEFAULT_SETTINGS = {
   emailAlerts: true,
   purchaseUpdates: true,
   listingUpdates: true,
-  darkMode: false,
 };
 
 function readSettings() {
@@ -25,7 +24,6 @@ export default function Settings() {
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    document.documentElement.classList.toggle('dark', settings.darkMode);
   }, [settings]);
 
   const updateSetting = (key) => {
@@ -37,7 +35,6 @@ export default function Settings() {
     { key: 'emailAlerts', label: 'Email alerts', description: 'Receive important account notifications by email.', icon: Bell },
     { key: 'purchaseUpdates', label: 'Purchase updates', description: 'Get updates about offers and purchase requests.', icon: Check },
     { key: 'listingUpdates', label: 'Listing updates', description: 'Receive updates when listings change status.', icon: SlidersHorizontal },
-    { key: 'darkMode', label: 'Dark mode', description: 'Use the darker interface appearance.', icon: Moon },
   ];
 
   return (

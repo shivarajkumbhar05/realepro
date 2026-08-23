@@ -3,9 +3,11 @@ import axios from "axios";
 
 // ─── API URL Configuration ──────────────────────────────────────────────────
 // Get API URL from environment with fallback
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const ENVIRONMENT = import.meta.env.MODE || 'development';
 const IS_DEV = ENVIRONMENT === 'development';
+const API_URL = import.meta.env.VITE_API_URL || (
+  import.meta.env.PROD ? "https://realepro.onrender.com/api" : "http://localhost:5000/api"
+);
 
 // Clean the URL (remove trailing slash and trim whitespace)
 const cleanApiUrl = API_URL.replace(/\/$/, '').trim();
@@ -87,7 +89,6 @@ api.interceptors.request.use(
     // Log request for debugging
     if (IS_DEV) {
       console.log(`📤 ${config.method?.toUpperCase() || 'GET'} ${config.url}`, {
-        data: config.data,
         params: config.params,
         headers: config.headers,
       });

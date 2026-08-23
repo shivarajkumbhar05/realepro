@@ -7,7 +7,7 @@ import {
   CheckCircle, AlertCircle, Sparkles, Save,
   Key, LogOut, UserCheck, Award, Star,
   Building2, Calendar, Clock, ArrowRight,
-  Eye, EyeOff, Bell, Moon, SlidersHorizontal,
+  Eye, EyeOff, Bell, SlidersHorizontal,
   // ✅ These are the correct icons available in lucide-react
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -32,7 +32,6 @@ export default function Profile() {
   const [preferences, setPreferences] = useState({
     emailAlerts: true,
     smsUpdates: false,
-    darkMode: false,
     mapDefault: true,
   });
 
@@ -97,7 +96,10 @@ export default function Profile() {
   const avatarSrc = avatarPreview || (user?.avatar ? `${BASE}${user.avatar}` : null);
 
   const togglePreference = (key) => {
-    setPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
+    setPreferences((prev) => {
+      const nextValue = !prev[key];
+      return { ...prev, [key]: nextValue };
+    });
   };
 
   // ─── Stats ────────────────────────────────────────────────────────────
@@ -610,7 +612,6 @@ export default function Profile() {
                   {[
                     { key: 'emailAlerts', title: 'Email alerts', description: 'Get updates on matching properties and offers', icon: Bell, activeColor: 'bg-primary-100 text-primary-600' },
                     { key: 'smsUpdates', title: 'SMS updates', description: 'Receive quick updates for important changes', icon: Shield, activeColor: 'bg-amber-100 text-amber-600' },
-                    { key: 'darkMode', title: 'Dark mode', description: 'Use a darker interface for late-night browsing', icon: Moon, activeColor: 'bg-slate-100 text-slate-700' },
                     { key: 'mapDefault', title: 'Map view by default', description: 'Open property browsing in map mode first', icon: Building2, activeColor: 'bg-emerald-100 text-emerald-600' },
                   ].map((item) => {
                     const Icon = item.icon;
