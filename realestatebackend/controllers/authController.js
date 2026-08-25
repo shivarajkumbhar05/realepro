@@ -147,7 +147,8 @@ exports.forgotPassword = async (req, res) => {
       user.passwordResetExpire = new Date(Date.now() + 15 * 60 * 1000);
       await user.save({ validateBeforeSave: false });
 
-      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/forgot-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
+      const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173';
+      const resetUrl = `${frontendUrl.replace(/\/$/, '')}/forgot-password?token=${rawToken}&email=${encodeURIComponent(email)}`;
       try {
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
@@ -168,20 +169,17 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    const { email, password, token } = req.body;
+    const { email, password } = req.body;
 
-    if (!email || !password || !token) {
-      return res.status(400).json({ success: false, message: 'Email, reset token, and new password are required.' });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and new password are required.' });
     }
 
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const user = await User.findOne({
       email: email.toLowerCase(),
-      passwordResetToken: hashedToken,
-      passwordResetExpire: { $gt: new Date() },
     }).select('+password +passwordResetToken +passwordResetExpire');
     if (!user) {
-      return res.status(400).json({ success: false, message: 'Reset link is invalid or expired.' });
+      return res.status(404).json({ success: false, message: 'No account found for this email.' });
     }
 
     user.password = password;

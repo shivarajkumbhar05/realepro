@@ -67,12 +67,8 @@ export default function Login() {
     }
   };
 
-  const forgotPassword = async () => {
+  const forgotPassword = () => {
     const email = getValues("email");
-    if (!email) {
-      toast.error("Please enter your registered email first.");
-      return;
-    }
     navigate("/forgot-password", { state: { email } });
   };
 
